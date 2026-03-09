@@ -1,0 +1,139 @@
+{
+  "projectType": "frontend",
+  "projectName": "Adosa Real Estate",
+  "projectDescription": "A premium Astro-based website for luxury real estate listings with smooth animations and multi-language support",
+  "theme": "palm",
+  "primaryColor": "#7c7c7c",
+  "lightColor": "#090708",
+  "darkColor": "#c890b2",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/design-system",
+              "concepts/internationalization",
+              "concepts/api-integration"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "components/overview",
+              "components/navigation",
+              "components/footer",
+              "components/loader",
+              "components/property-components"
+            ]
+          },
+          {
+            "group": "Pages & Routing",
+            "pages": [
+              "pages/home",
+              "pages/properties",
+              "pages/property-detail",
+              "pages/contact",
+              "pages/mission"
+            ]
+          },
+          {
+            "group": "Styling & Animations",
+            "pages": [
+              "styling/theme",
+              "styling/typography",
+              "styling/animations",
+              "styling/responsive-design"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/local-development",
+              "guides/adding-components",
+              "guides/working-with-properties",
+              "guides/customizing-animations"
+            ]
+          },
+          {
+            "group": "API Integration",
+            "pages": [
+              "api/ego-real-estate",
+              "api/leads-management",
+              "api/environment-variables"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/build-process",
+              "deployment/github-actions",
+              "deployment/sftp-deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "API",
+            "pages": [
+              "reference/property-interface",
+              "reference/api-core",
+              "reference/utils",
+              "reference/i18n-translations"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "reference/astro-config",
+              "reference/tsconfig",
+              "reference/css-variables"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Astro 5 static site generation with TypeScript",
+    "GSAP animations with ScrollTrigger and Lenis smooth scrolling",
+    "Bilingual support (Spanish/English) with i18n routing",
+    "eGO Real Estate API integration for property data",
+    "Leaflet maps for property locations",
+    "Responsive design with premium minimalist aesthetic",
+    "Automated deployment via GitHub Actions",
+    "Lead management with PHP proxy backend"
+  ],
+  "publicApiSurface": [
+    "Property interface (id, egoId, title, location, type, bedrooms, bathrooms, size, price, images, coords)",
+    "ApiCore.request() - API request handler with retry logic",
+    "textRevealAnimation() - GSAP text reveal utility",
+    "textSwipeAnimation() - GSAP text swipe utility",
+    "useTranslatedPath() - i18n path helper",
+    "getLangFromUrl() - Extract language from URL",
+    "useTranslations() - Get translations for current language",
+    "BaseLayout component - Main layout with Lenis and page transitions",
+    "Navigation component - Header with language switcher",
+    "PropertyGrid component - Filterable property listings",
+    "PropertyMap component - Leaflet map integration"
+  ]
+}
