@@ -1,0 +1,198 @@
+---
+title: ApiCore Class
+description: HTTP client for the EGO Real Estate API with automatic retry logic
+---
+
+The `ApiCore` class provides a robust HTTP client for communicating with the EGO Real Estate API. It includes automatic retry logic for rate limiting and network errors.
+
+## Class Definition
+
+```typescript
+export class ApiCore {
+  static async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    lang: string = "es-ES"
+  ): Promise<T>
+}
+```
+
+## Configuration
+
+```typescript
+const API_BASE_URL = "https://websiteapi.egorealestate.com";
+const RETRY_DELAYS = [2000, 5000, 10000]; // Exponential backoff in milliseconds
+```
+
+The API client connects to the EGO Real Estate API and uses exponential backoff retry delays of 2s, 5s, and 10s.
+
+## Methods
+
+### `request()`
+
+Makes an authenticated HTTP request to the EGO Real Estate API with automatic retry logic.
+
+```typescript
+static async request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  lang: string = "es-ES"
+): Promise<T>
+```
+
+#### Parameters
+
+<ParamField path="endpoint" type="string" required>
+  API endpoint path (e.g., `/properties`, `/property/123`)
+</ParamField>
+
+<ParamField path="options" type="RequestInit" default="{}">
+  Standard fetch API options object. The following headers are automatically added:
+  - `AuthorizationToken`: API token from environment
+  - `Content-Type`: `application/json`
+  - `Language`: Language code (es-ES or en-US)
+</ParamField>
+
+<ParamField path="lang" type="string" default="es-ES">
+  Language code for the API request. Common values:
+  - `"es-ES"` - Spanish (default)
+  - `"en-US"` - English
+</ParamField>
+
+#### Returns
+
+<ResponseField name="response" type="T">
+  Returns a Promise that resolves to the typed response data. The type parameter `T` defines the expected response shape.
+</ResponseField>
+
+#### Retry Logic
+
+The `request()` method implements intelligent retry logic:
+
+1. **Rate Limiting (429)**: Automatically retries with exponential backoff delays (2s, 5s, 10s)
+2. **Network Errors**: Retries network failures with the same backoff strategy
+3. **Maximum Attempts**: Up to 3 retry attempts after the initial request
+4. **Logging**: Console logs all retry attempts with attempt numbers
+
+#### Error Handling
+
+The method throws errors in the following cases:
+- Non-429 HTTP errors (4xx, 5xx) after the first attempt
+- After exhausting all retry attempts
+- JSON parsing failures
+
+## Authentication
+
+Authentication is handled automatically using the `PUBLIC_EGO_API_TOKEN` environment variable. The token is sent in two ways for maximum compatibility:
+
+1. **HTTP Header**: `AuthorizationToken: <token>`
+2. **URL Query Parameter**: `?AuthorizationToken=<token>`
+
+## Usage Examples
+
+### Basic Request
+
+```typescript
+import { ApiCore } from './services/api/api';
+
+interface PropertiesResponse {
+  properties: Property[];
+  total: number;
+}
+
+// Fetch all properties in Spanish
+const data = await ApiCore.request<PropertiesResponse>(
+  '/properties',
+  {},
+  'es-ES'
+);
+
+console.log(`Found ${data.total} properties`);
+```
+
+### Request with English Language
+
+```typescript
+// Fetch properties in English
+const data = await ApiCore.request<PropertiesResponse>(
+  '/properties',
+  {},
+  'en-US'
+);
+```
+
+### POST Request
+
+```typescript
+interface CreatePropertyRequest {
+  title: string;
+  price: number;
+  location: string;
+}
+
+interface CreatePropertyResponse {
+  id: number;
+  success: boolean;
+}
+
+const newProperty = await ApiCore.request<CreatePropertyResponse>(
+  '/properties',
+  {
+    method: 'POST',
+    body: JSON.stringify({
+      title: 'New Villa',
+      price: 500000,
+      location: 'Marbella'
+    })
+  }
+);
+```
+
+### Handling Errors
+
+```typescript
+try {
+  const data = await ApiCore.request<PropertiesResponse>('/properties');
+  // Process data
+} catch (error) {
+  console.error('Failed to fetch properties:', error);
+  // Handle error (all retries exhausted)
+}
+```
+
+## Console Logging
+
+The ApiCore class provides detailed console logging:
+
+```
+🖥️ [API-CORE] Pidiendo: /properties
+⏳ [API-CORE] Rate limit 429 — esperando 2s antes de reintentar...
+🖥️ [API-CORE] Pidiendo: /properties (intento 2)
+❌ ERROR API (500): Internal Server Error
+```
+
+## Technical Details
+
+### CORS Configuration
+
+All requests are made with `mode: "cors"` to enable cross-origin requests.
+
+### Content Type Detection
+
+The response handler checks the `Content-Type` header:
+- **`application/json`**: Parses and returns JSON
+- **Other types**: Returns `{ success: true }` for successful requests
+
+### Sleep Function
+
+Retry delays are implemented using an internal sleep utility:
+
+```typescript
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+```
+
+## Source Location
+
+`src/services/api/api.ts:1-78`

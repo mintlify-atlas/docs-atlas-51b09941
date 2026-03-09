@@ -1,0 +1,194 @@
+---
+title: Installation
+description: Set up your Adosa Real Estate project locally
+icon: download
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js">
+    Version 18.0 or higher required
+  </Card>
+  <Card title="Package Manager" icon="box">
+    npm, pnpm, or yarn
+  </Card>
+</CardGroup>
+
+<Note>
+Check your Node.js version by running `node --version` in your terminal. The current development environment uses **Node.js v24.13.1**.
+</Note>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    First, clone the Adosa Real Estate repository to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd inmobiliaria-adosa
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required dependencies using your preferred package manager:
+
+    <CodeGroup>
+      ```bash npm
+      npm install
+      ```
+
+      ```bash pnpm
+      pnpm install
+      ```
+
+      ```bash yarn
+      yarn install
+      ```
+    </CodeGroup>
+
+    This will install the following core dependencies:
+
+    <AccordionGroup>
+      <Accordion title="View All Dependencies">
+        **Framework & Build Tools:**
+        - `astro` (^5.16.5) - Modern static site framework
+        - `@astrojs/check` (^0.9.6) - Type checking for Astro
+        - `typescript` (^5.9.3) - TypeScript support
+
+        **Animation Libraries:**
+        - `gsap` (^3.14.2) - Professional-grade animation
+        - `lenis` (^1.3.16) - Smooth scroll library
+
+        **Map Integration:**
+        - `leaflet` (^1.9.4) - Interactive maps
+        - `@types/leaflet` (^1.9.21) - TypeScript definitions
+
+        **QR Code Generation:**
+        - `qrcode` (^1.5.4) - QR code functionality
+        - `@types/qrcode` (^1.5.6) - TypeScript definitions
+      </Accordion>
+    </AccordionGroup>
+  </Step>
+
+  <Step title="Verify Installation">
+    Confirm that all dependencies were installed correctly:
+
+    ```bash
+    ls node_modules
+    ```
+
+    You should see all the package directories listed above.
+  </Step>
+</Steps>
+
+## Project Structure
+
+After installation, your project will have the following structure:
+
+```
+inmobiliaria-adosa/
+├── public/              # Static assets (images, videos, SVGs)
+│   ├── images/         # Image files organized by category
+│   ├── video/          # Video files
+│   ├── Logo_adosa.svg  # Company logo
+│   └── favicon.svg     # Site favicon
+├── src/
+│   ├── components/     # Reusable Astro components
+│   │   ├── properties/ # Property-specific components
+│   │   ├── Navigation.astro
+│   │   ├── Footer.astro
+│   │   └── ...
+│   ├── data/           # Data files and configurations
+│   ├── i18n/           # Internationalization (ES/EN)
+│   ├── layouts/        # Page layout components
+│   │   └── BaseLayout.astro
+│   ├── pages/          # Route pages
+│   │   └── [...lang]/  # Dynamic language routing
+│   ├── scripts/        # Client-side scripts
+│   ├── services/       # API services and utilities
+│   │   └── api/
+│   ├── styles/         # Global styles and theme
+│   │   ├── global.css
+│   │   ├── theme.css
+│   │   └── animations.css
+│   ├── types/          # TypeScript type definitions
+│   └── utils/          # Helper functions
+├── astro.config.mjs    # Astro configuration
+├── tsconfig.json       # TypeScript configuration
+└── package.json        # Project dependencies
+```
+
+<Info>
+The project uses **Astro 5** with static output mode and file-based routing through the `[...lang]` dynamic segment for internationalization.
+</Info>
+
+## Configuration Files
+
+### Astro Configuration
+
+The `astro.config.mjs` file contains the following key settings:
+
+```javascript astro.config.mjs
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+    output: 'static',
+    devToolbar: {
+        enabled: false
+    },
+    compressHTML: true,
+    vite: {
+        ssr: {
+            noExternal: ['gsap'], // GSAP must be processed in SSR
+        },
+    },
+});
+```
+
+### TypeScript Configuration
+
+The project extends Astro's strict TypeScript configuration:
+
+```json tsconfig.json
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "astro.config.mjs"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}
+```
+
+## Environment Variables
+
+<Warning>
+This project does not currently require environment variables for local development. However, if you're integrating with external APIs (like the real estate API mentioned in the source), you may need to create a `.env` file.
+</Warning>
+
+If needed, create a `.env` file in the root directory:
+
+```bash .env
+# Example environment variables
+# Add your API keys and configuration here
+PUBLIC_SITE_URL=http://localhost:4321
+```
+
+<Tip>
+Environment variables prefixed with `PUBLIC_` are accessible in client-side code. Non-prefixed variables are only available server-side.
+</Tip>
+
+## Next Steps
+
+Now that you have installed the Adosa Real Estate project, you're ready to start the development server!
+
+<Card title="Quick Start" icon="rocket" href="/quickstart">
+  Learn how to run the dev server and make your first customization
+</Card>

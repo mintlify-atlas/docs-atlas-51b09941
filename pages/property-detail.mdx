@@ -1,0 +1,549 @@
+---
+title: Property Detail Page
+description: Dynamic property detail page with gallery, specifications, and interactive map
+---
+
+The property detail page displays comprehensive information about a single property, with separate desktop and mobile layouts.
+
+## Route
+
+- **Path**: `/propiedades/{type}-{location}/{id}`
+- **Example**: `/propiedades/apartamento-marbella/ADO-P-42378`
+- **File**: `src/pages/[...lang]/propiedades/[...slug].astro`
+- **Type**: Dynamic route with static generation
+
+## Dynamic Routing
+
+### Static Path Generation
+
+All property pages are pre-generated at build time:
+
+```astro title="src/pages/[...lang]/propiedades/[...slug].astro"
+import { PropertyService } from "../../../services/api/properties";
+import { normalizeSlug } from "../../../utils/slug";
+
+export async function getStaticPaths() {
+  const propertiesEs = await PropertyService.getAll("es-ES");
+  const propertiesEn = await PropertyService.getAll("en-GB");
+
+  const paths = [];
+
+  // Spanish paths
+  propertiesEs.forEach((prop) => {
+    const cleanType = normalizeSlug(prop.type);
+    const cleanLoc = normalizeSlug(prop.location);
+    const slug = `${cleanType}-${cleanLoc}/${prop.id}`;
+
+    paths.push({
+      params: { lang: undefined, slug },
+      props: { property: prop, lang: "es" },
+    });
+  });
+
+  // English paths
+  propertiesEn.forEach((prop) => {
+    const cleanType = normalizeSlug(prop.type);
+    const cleanLoc = normalizeSlug(prop.location);
+    const slug = `${cleanType}-${cleanLoc}/${prop.id}`;
+
+    paths.push({
+      params: { lang: "en", slug },
+      props: { property: prop, lang: "en" },
+    });
+  });
+
+  return paths;
+}
+```
+
+**Slug Normalization:**
+
+The `normalizeSlug` function creates URL-friendly slugs:
+
+```typescript
+// Example transformations:
+"San Pedro de Alcántara" → "san-pedro-de-alcantara"
+"Apartamento" → "apartamento"
+"Casa" → "casa"
+```
+
+### Props Access
+
+```astro
+const { property, lang = "es" } = Astro.props;
+const isEn = lang === "en";
+
+if (!property) {
+  return Astro.redirect("/404");
+}
+```
+
+## Page Structure
+
+The page uses CSS to toggle between desktop and mobile views:
+
+```astro
+<Layout
+  title={`${property.title} | Adosa`}
+  description={isEn ? property.description_en : property.description}
+  lang={lang}
+  noindex={true}
+>
+  <div class="view-desktop">
+    <PropertyDesktop property={property} lang={lang} />
+  </div>
+
+  <div class="view-mobile">
+    <PropertyMobile property={property} lang={lang} />
+  </div>
+</Layout>
+
+<style>
+  .view-desktop {
+    display: block;
+  }
+  .view-mobile {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .view-desktop {
+      display: none;
+    }
+    .view-mobile {
+      display: block;
+    }
+  }
+</style>
+```
+
+## Desktop Layout (PropertyDesktop)
+
+The desktop view uses a "zipper" scroll layout with alternating left/right content.
+
+### Scroll Items Structure
+
+```astro title="src/components/properties/PropertyDesktop.astro"
+const scrollItems = [];
+
+// 1. HERO (Row 1)
+scrollItems.push({
+  type: "hero-img",
+  side: "left",
+  src: images[0],
+  isHero: true,
+});
+scrollItems.push({ type: "hero-content", side: "right", isHero: true });
+
+// 2. NARRATIVE (Row 2) - Text Left, Img Right
+if (images[1]) {
+  scrollItems.push({ type: "narrative-text", side: "left" });
+  scrollItems.push({ type: "img", side: "right", src: images[1] });
+}
+
+// 3. SPECS (Row 3) - Img Left, Specs Right
+if (images[2]) {
+  scrollItems.push({ type: "img", side: "left", src: images[2] });
+  scrollItems.push({ type: "specs", side: "right" });
+}
+
+// 4. GALLERY LOOP - Alternating images
+const remainingImages = images.slice(3);
+remainingImages.forEach((img, i) => {
+  const side = i % 2 === 0 ? "left" : "right";
+  scrollItems.push({ type: "img", side, src: img });
+});
+
+// 5. FLOOR PLANS (if available)
+if (property.floor_plans && property.floor_plans.length > 0) {
+  const count = scrollItems.length;
+  const side = count % 2 === 0 ? "left" : "right";
+  scrollItems.push({ type: "plans", side, src: property.floor_plans[0] });
+}
+```
+
+### Rendering Items
+
+```astro
+<article class="desktop-zipper">
+  {
+    scrollItems.map((item, index) => (
+      <div
+        class={`zipper-item ${
+          item.isHero ? "item-hero" : "item-scroll"
+        } ${item.side === "left" ? "pos-left" : "pos-right"}`}
+        data-index={index}
+      >
+        {item.type === "hero-img" && (
+          <div class="hero-image-wrapper">
+            <img src={item.src} alt={property.title} />
+          </div>
+        )}
+        
+        {item.type === "hero-content" && (
+          <div class="hero-content">
+            <h1>{title}</h1>
+            <p class="price">{property.price}</p>
+            <p class="location">{municipality}</p>
+            {/* Share buttons, contact form, etc. */}
+          </div>
+        )}
+        
+        {item.type === "narrative-text" && (
+          <div class="narrative-text">
+            <p>{description_full}</p>
+          </div>
+        )}
+        
+        {item.type === "specs" && (
+          <div class="specs-block">
+            {/* Property specifications */}
+          </div>
+        )}
+        
+        {item.type === "img" && (
+          <div class="image-wrapper">
+            <img src={item.src} alt={`${property.title}`} loading="lazy" />
+          </div>
+        )}
+        
+        {item.type === "plans" && (
+          <div class="plans-wrapper">
+            <h3>Floor Plans</h3>
+            <img src={item.src} alt="Floor plan" />
+          </div>
+        )}
+      </div>
+    ))
+  }
+</article>
+```
+
+### Layout Styles
+
+```css title="src/components/properties/PropertyDesktop.astro"
+.desktop-zipper {
+  width: 100vw;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(400px, auto);
+  gap: 0;
+}
+
+.zipper-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.pos-left {
+  grid-column: 1;
+}
+
+.pos-right {
+  grid-column: 2;
+}
+
+.item-hero {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.item-scroll {
+  min-height: 60vh;
+}
+```
+
+### Specifications Display
+
+```astro
+<div class="specs-block">
+  <div class="specs-grid">
+    {property.bedrooms > 0 && (
+      <div class="spec-item">
+        <span class="spec-label">{t("details.bedrooms")}</span>
+        <span class="spec-value">{property.bedrooms}</span>
+      </div>
+    )}
+    {property.bathrooms > 0 && (
+      <div class="spec-item">
+        <span class="spec-label">{t("details.bathrooms")}</span>
+        <span class="spec-value">{property.bathrooms}</span>
+      </div>
+    )}
+    <div class="spec-item">
+      <span class="spec-label">{t("details.built_area")}</span>
+      <span class="spec-value">{property.size} m²</span>
+    </div>
+    {property.land_size > 0 && (
+      <div class="spec-item">
+        <span class="spec-label">{t("details.plot_size")}</span>
+        <span class="spec-value">{property.land_size} m²</span>
+      </div>
+    )}
+  </div>
+</div>
+```
+
+## Mobile Layout (PropertyMobile)
+
+The mobile view uses a fullscreen image gallery with a slide-up details drawer.
+
+### Image Gallery
+
+Fullscreen image slider:
+
+```astro title="src/components/properties/PropertyMobile.astro"
+<div class="gallery-slider">
+  {
+    gallery.map((img, index) => (
+      <div class="gallery-slide">
+        <img
+          src={img}
+          alt={`${property.title} - ${index + 1}`}
+          loading={index === 0 ? "eager" : "lazy"}
+        />
+      </div>
+    ))
+  }
+</div>
+```
+
+**Gallery Styles:**
+```css
+.gallery-slider {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gallery-slide {
+  flex: 0 0 100vw;
+  height: 100vh;
+  scroll-snap-align: start;
+  position: relative;
+}
+
+.gallery-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+```
+
+### Floating Actions Button
+
+Info button to open details drawer:
+
+```astro
+<div class="floating-actions">
+  <button
+    id="mobile-details-trigger"
+    class="icon-btn info-btn"
+    aria-label="Ver detalles"
+  >
+    <span class="info-icon">i</span>
+  </button>
+</div>
+```
+
+### Details Drawer
+
+Slide-up overlay with property information:
+
+```astro
+<div class="details-drawer" id="details-drawer">
+  <div class="drawer-content">
+    {/* Header Fixed */}
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <h2 class="drawer-title">{title}</h2>
+        <p class="drawer-price">{property.price}</p>
+      </div>
+      <button id="close-drawer" class="close-btn">✕</button>
+    </div>
+
+    {/* Scrollable Body */}
+    <div class="drawer-body" id="drawer-scroll-container">
+      {/* Share Actions */}
+      <ShareButtons />
+
+      {/* Specs Grid */}
+      <div class="specs-row">
+        {/* Bedroom, bathroom, size specs */}
+      </div>
+
+      {/* Description */}
+      <div class="description-block">
+        <p>{description_full}</p>
+      </div>
+
+      {/* Map */}
+      <PropertyMap
+        lat={property.latitude}
+        lng={property.longitude}
+        title={property.title}
+      />
+
+      {/* Contact Form */}
+      <ContactProperty property={property} lang={lang} />
+    </div>
+  </div>
+</div>
+```
+
+**Drawer Interaction:**
+```typescript
+const trigger = document.getElementById("mobile-details-trigger");
+const drawer = document.getElementById("details-drawer");
+const closeBtn = document.getElementById("close-drawer");
+
+trigger?.addEventListener("click", () => {
+  drawer?.classList.add("open");
+  document.body.style.overflow = "hidden";
+});
+
+closeBtn?.addEventListener("click", () => {
+  drawer?.classList.remove("open");
+  document.body.style.overflow = "";
+});
+```
+
+## PropertyMap Integration
+
+Interactive map showing property location:
+
+```astro title="src/components/properties/PropertyMap.astro"
+<div class="map-container">
+  <div id="property-map" data-lat={lat} data-lng={lng} data-title={title}></div>
+</div>
+
+<script>
+  import L from "leaflet";
+  
+  const mapEl = document.getElementById("property-map");
+  const lat = parseFloat(mapEl.dataset.lat || "0");
+  const lng = parseFloat(mapEl.dataset.lng || "0");
+  const title = mapEl.dataset.title || "Property";
+
+  const map = L.map("property-map").setView([lat, lng], 15);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© OpenStreetMap contributors',
+  }).addTo(map);
+
+  L.marker([lat, lng])
+    .addTo(map)
+    .bindPopup(title)
+    .openPopup();
+</script>
+```
+
+## Contact Form
+
+Property-specific contact form:
+
+```astro title="src/components/properties/ContactProperty.astro"
+<form class="contact-form" id="property-contact-form">
+  <input type="hidden" name="property_id" value={property.id} />
+  <input type="hidden" name="property_title" value={property.title} />
+  
+  <div class="form-group">
+    <label>{t("contact.name")}</label>
+    <input type="text" name="name" required />
+  </div>
+  
+  <div class="form-group">
+    <label>{t("contact.email")}</label>
+    <input type="email" name="email" required />
+  </div>
+  
+  <div class="form-group">
+    <label>{t("contact.phone")}</label>
+    <input type="tel" name="phone" required />
+  </div>
+  
+  <div class="form-group">
+    <label>{t("contact.message")}</label>
+    <textarea name="message" rows="4" required></textarea>
+  </div>
+  
+  <button type="submit" class="submit-btn">{t("contact.send")}</button>
+</form>
+```
+
+**Form Submission:**
+```typescript
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  
+  const formData = new FormData(form);
+  const leadData = {
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    message: formData.get("message"),
+    property_id: formData.get("property_id"),
+    source: "property_detail_page",
+  };
+  
+  const { LeadService } = await import("../../services/api/leads");
+  const response = await LeadService.submitPropertyLead(leadData);
+  
+  if (response.success) {
+    alert(response.message);
+    form.reset();
+  }
+});
+```
+
+## Internationalization
+
+All text content supports multiple languages:
+
+```astro
+const isEn = lang === "en";
+
+const title = property.title;
+const description = isEn && property.description_en
+  ? property.description_en
+  : property.description;
+const municipality = isEn && property.municipality_en
+  ? property.municipality_en
+  : property.municipality;
+```
+
+## SEO Configuration
+
+```astro
+<Layout
+  title={`${property.title} | Adosa`}
+  description={isEn ? property.description_en : property.description}
+  lang={lang}
+  noindex={true}
+>
+```
+
+Note: Property pages are set to `noindex={true}` to avoid indexing dynamic content that may change frequently.
+
+## Related Components
+
+- `PropertyDesktop.astro` - Desktop zipper layout
+- `PropertyMobile.astro` - Mobile gallery + drawer layout
+- `PropertyMap.astro` - Leaflet map integration
+- `ContactProperty.astro` - Property-specific contact form
+- `ShareButtons.astro` - Social sharing buttons
+- `FloatingContactBtn.astro` - Sticky contact button
+
+## Related Services
+
+- `PropertyService.getAll()` - Fetches all properties from API
+- `LeadService.submitPropertyLead()` - Submits lead for specific property
+- `normalizeSlug()` - Creates URL-friendly slugs

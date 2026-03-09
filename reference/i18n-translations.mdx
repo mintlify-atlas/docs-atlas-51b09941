@@ -1,0 +1,444 @@
+---
+title: Internationalization (i18n)
+description: Translation utilities and language support for Adosa
+---
+
+The i18n system provides bilingual support (Spanish and English) for the Adosa Real Estate platform.
+
+## Configuration
+
+### Supported Languages
+
+```typescript
+export const languages = {
+  es: 'Español',
+  en: 'English',
+};
+
+export const defaultLang = 'es';
+```
+
+The platform supports Spanish (`es`) as the default language and English (`en`) as an alternative.
+
+## Translation Object
+
+The `ui` object contains all translation keys for both languages:
+
+```typescript
+export const ui = {
+  es: { /* Spanish translations */ },
+  en: { /* English translations */ }
+} as const;
+```
+
+### Available Translation Keys
+
+#### Navigation
+
+<ParamField path="nav.home" type="string">
+  **ES**: "Sobre Adosa" | **EN**: "About Adosa"
+</ParamField>
+
+<ParamField path="nav.properties" type="string">
+  **ES**: "Propiedades" | **EN**: "Properties"
+</ParamField>
+
+<ParamField path="nav.mission" type="string">
+  **ES**: "Misión" | **EN**: "Mission"
+</ParamField>
+
+<ParamField path="nav.contact" type="string">
+  **ES**: "Contacto" | **EN**: "Contact"
+</ParamField>
+
+#### Footer
+
+<ParamField path="footer.rights" type="string">
+  **ES**: "Todos los derechos reservados" | **EN**: "All rights reserved"
+</ParamField>
+
+<ParamField path="footer.privacy" type="string">
+  **ES**: "Política de privacidad" | **EN**: "Privacy Policy"
+</ParamField>
+
+<ParamField path="footer.cookies" type="string">
+  **ES**: "Política de Cookies" | **EN**: "Cookies Policy"
+</ParamField>
+
+#### Property Details
+
+<ParamField path="property.bedrooms" type="string">
+  **ES**: "Dorm." | **EN**: "Beds"
+</ParamField>
+
+<ParamField path="property.bathrooms" type="string">
+  **ES**: "Baños" | **EN**: "Baths"
+</ParamField>
+
+<ParamField path="property.built" type="string">
+  **ES**: "m² Construido" | **EN**: "m² Built"
+</ParamField>
+
+<ParamField path="property.plot" type="string">
+  **ES**: "m² Parcela" | **EN**: "m² Plot"
+</ParamField>
+
+<ParamField path="property.price" type="string">
+  **ES**: "Precio" | **EN**: "Price"
+</ParamField>
+
+<ParamField path="property.details" type="string">
+  **ES**: "Detalles" | **EN**: "Details"
+</ParamField>
+
+<ParamField path="property.description" type="string">
+  **ES**: "Descripción" | **EN**: "Description"
+</ParamField>
+
+<ParamField path="property.location" type="string">
+  **ES**: "Ubicación" | **EN**: "Location"
+</ParamField>
+
+<ParamField path="property.type" type="string">
+  **ES**: "Tipo" | **EN**: "Type"
+</ParamField>
+
+<ParamField path="property.reference" type="string">
+  **ES**: "Referencia" | **EN**: "Reference"
+</ParamField>
+
+<ParamField path="property.energy" type="string">
+  **ES**: "Cert. Energético" | **EN**: "Energy Cert."
+</ParamField>
+
+<ParamField path="property.community" type="string">
+  **ES**: "Comunidad" | **EN**: "Community"
+</ParamField>
+
+<ParamField path="property.ibi" type="string">
+  **ES**: "IBI" | **EN**: "IBI"
+</ParamField>
+
+#### Property Grid Filters
+
+<ParamField path="grid.location" type="string">
+  **ES**: "Ubicación" | **EN**: "Location"
+</ParamField>
+
+<ParamField path="grid.typology" type="string">
+  **ES**: "Tipología" | **EN**: "Typology"
+</ParamField>
+
+<ParamField path="grid.beds" type="string">
+  **ES**: "Habitaciones" | **EN**: "Bedrooms"
+</ParamField>
+
+<ParamField path="grid.baths" type="string">
+  **ES**: "Baños" | **EN**: "Bathrooms"
+</ParamField>
+
+<ParamField path="grid.all" type="string">
+  **ES**: "Todos" | **EN**: "All" (masculine)
+</ParamField>
+
+<ParamField path="grid.all_f" type="string">
+  **ES**: "Todas" | **EN**: "All" (feminine)
+</ParamField>
+
+<ParamField path="grid.any" type="string">
+  **ES**: "Cualquiera" | **EN**: "Any"
+</ParamField>
+
+#### Property Types
+
+<ParamField path="grid.apartment" type="string">
+  **ES**: "Apartamento" | **EN**: "Apartment"
+</ParamField>
+
+<ParamField path="grid.house" type="string">
+  **ES**: "Casa" | **EN**: "House"
+</ParamField>
+
+<ParamField path="grid.land" type="string">
+  **ES**: "Terreno" | **EN**: "Land"
+</ParamField>
+
+<ParamField path="grid.project" type="string">
+  **ES**: "Parcela" | **EN**: "Plots"
+</ParamField>
+
+<ParamField path="grid.attic" type="string">
+  **ES**: "Ático" | **EN**: "Penthouse"
+</ParamField>
+
+<ParamField path="grid.apartments" type="string">
+  **ES**: "Apartamentos" | **EN**: "Apartments" (plural)
+</ParamField>
+
+<ParamField path="grid.houses" type="string">
+  **ES**: "Casas" | **EN**: "Houses" (plural)
+</ParamField>
+
+<ParamField path="grid.lands" type="string">
+  **ES**: "Terrenos" | **EN**: "Lands" (plural)
+</ParamField>
+
+<ParamField path="grid.projects" type="string">
+  **ES**: "Parcelas" | **EN**: "Plots" (plural)
+</ParamField>
+
+<ParamField path="grid.commercial" type="string">
+  **ES**: "Local Comercial" | **EN**: "Commercial Property"
+</ParamField>
+
+<ParamField path="grid.featured" type="string">
+  **ES**: "DESTACADO" | **EN**: "FEATURED"
+</ParamField>
+
+<ParamField path="grid.bed_unit" type="string">
+  **ES**: "Dorm." | **EN**: "Bed"
+</ParamField>
+
+<ParamField path="grid.bath_unit" type="string">
+  **ES**: "Baño" | **EN**: "Bath"
+</ParamField>
+
+#### Contact Form
+
+<ParamField path="contact.title" type="string">
+  **ES**: "Hablemos" | **EN**: "Let's Talk"
+</ParamField>
+
+<ParamField path="contact.name" type="string">
+  **ES**: "Nombre" | **EN**: "Name"
+</ParamField>
+
+<ParamField path="contact.phone" type="string">
+  **ES**: "Teléfono" | **EN**: "Phone"
+</ParamField>
+
+<ParamField path="contact.email" type="string">
+  **ES**: "Email" | **EN**: "Email"
+</ParamField>
+
+<ParamField path="contact.message" type="string">
+  **ES**: "Mensaje" | **EN**: "Message"
+</ParamField>
+
+<ParamField path="contact.send" type="string">
+  **ES**: "ENVIAR" | **EN**: "SEND"
+</ParamField>
+
+## Utility Functions
+
+### `getLangFromUrl()`
+
+Extracts the language code from a URL pathname.
+
+```typescript
+function getLangFromUrl(url: URL): keyof typeof ui
+```
+
+#### Parameters
+
+<ParamField path="url" type="URL" required>
+  URL object to extract language from
+</ParamField>
+
+#### Returns
+
+<ResponseField name="lang" type="'es' | 'en'">
+  Language code from URL, or default language if not found
+</ResponseField>
+
+#### Usage Example
+
+```typescript
+import { getLangFromUrl } from './i18n/utils';
+
+// In an Astro component
+const lang = getLangFromUrl(Astro.url);
+// URL: https://adosa.com/en/properties -> returns 'en'
+// URL: https://adosa.com/propiedades -> returns 'es'
+```
+
+---
+
+### `useTranslations()`
+
+Returns a translation function for the specified language.
+
+```typescript
+function useTranslations(lang: keyof typeof ui): (key: keyof typeof ui[typeof defaultLang]) => string
+```
+
+#### Parameters
+
+<ParamField path="lang" type="'es' | 'en'" required>
+  Language code to use for translations
+</ParamField>
+
+#### Returns
+
+<ResponseField name="t" type="function">
+  Translation function that accepts a key and returns the translated string. Falls back to default language if translation is missing.
+</ResponseField>
+
+#### Usage Example
+
+```typescript
+import { useTranslations } from './i18n/utils';
+
+const lang = 'en';
+const t = useTranslations(lang);
+
+console.log(t('nav.home'));       // "About Adosa"
+console.log(t('nav.properties')); // "Properties"
+console.log(t('grid.featured'));  // "FEATURED"
+```
+
+#### In Astro Components
+
+```astro
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<nav>
+  <a href="/">{t('nav.home')}</a>
+  <a href="/properties">{t('nav.properties')}</a>
+  <a href="/contact">{t('nav.contact')}</a>
+</nav>
+```
+
+---
+
+### `useTranslatedPath()`
+
+Returns a function that creates language-prefixed URLs.
+
+```typescript
+function useTranslatedPath(lang: keyof typeof ui): (path: string, l?: string) => string
+```
+
+#### Parameters
+
+<ParamField path="lang" type="'es' | 'en'" required>
+  Current language code
+</ParamField>
+
+#### Returns
+
+<ResponseField name="translatePath" type="function">
+  Function that accepts a path and optional language code, returning the properly prefixed URL. Default language paths have no prefix.
+</ResponseField>
+
+#### Usage Example
+
+```typescript
+import { useTranslatedPath } from './i18n/utils';
+
+const translatePath = useTranslatedPath('en');
+
+translatePath('/properties');        // "/en/properties"
+translatePath('/contact');           // "/en/contact"
+translatePath('/properties', 'es');  // "/properties" (default lang, no prefix)
+translatePath('/properties', 'en');  // "/en/properties"
+```
+
+#### In Language Switcher
+
+```astro
+---
+import { getLangFromUrl, useTranslatedPath } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const translatePath = useTranslatedPath(lang);
+const currentPath = Astro.url.pathname.replace(/^\/en/, '');
+---
+
+<div class="language-switcher">
+  <a href={translatePath(currentPath, 'es')}>ES</a>
+  <a href={translatePath(currentPath, 'en')}>EN</a>
+</div>
+```
+
+---
+
+### `getStaticPaths()`
+
+Helper function for generating static paths in Astro with language support.
+
+```typescript
+function getStaticPaths(): Array<{ params: { lang: undefined | string } }>
+```
+
+#### Returns
+
+<ResponseField name="paths" type="Array">
+  Array of path configurations for Astro static generation:
+  - `{ params: { lang: undefined } }` - Default language (Spanish)
+  - `{ params: { lang: 'en' } }` - English language
+</ResponseField>
+
+#### Usage in Astro Pages
+
+```astro
+---
+// src/pages/[lang]/properties.astro
+import { getStaticPaths as getI18nPaths } from '../../i18n/utils';
+
+export function getStaticPaths() {
+  return getI18nPaths();
+}
+
+const { lang } = Astro.params;
+---
+```
+
+## Complete Example
+
+```astro
+---
+// src/components/PropertyCard.astro
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import type { Property } from '../data/properties';
+
+interface Props {
+  property: Property;
+}
+
+const { property } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<div class="property-card">
+  <img src={property.image} alt={property.title} />
+  
+  <h3>{property.title}</h3>
+  <p>{property.location}</p>
+  
+  {property.status === 'DESTACADO' && (
+    <span class="badge">{t('grid.featured')}</span>
+  )}
+  
+  <div class="details">
+    <span>{property.bedrooms} {t('grid.bed_unit')}</span>
+    <span>{property.bathrooms} {t('grid.bath_unit')}</span>
+    <span>{property.size} m²</span>
+  </div>
+  
+  <div class="price">
+    <strong>{t('property.price')}:</strong> {property.price}
+  </div>
+</div>
+```
+
+## Source Locations
+
+- `src/i18n/ui.ts:1-106` - Translation keys and language configuration
+- `src/i18n/utils.ts:1-27` - Utility functions

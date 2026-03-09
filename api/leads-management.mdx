@@ -1,0 +1,371 @@
+---
+title: "Leads Management"
+description: "Guide to lead and contact form submission through the PHP proxy and eGO API"
+---
+
+## Overview
+
+The Adosa Real Estate website uses a **PHP proxy** to submit lead and contact forms to the eGO Real Estate API. This architecture solves CORS issues and provides a unified interface for form submissions.
+
+## Architecture
+
+```
+Browser (Form) → PHP Proxy → eGO API
+                 (CORS Safe)  (AuthorizationToken)
+```
+
+The flow:
+1. User submits form on the website
+2. JavaScript calls `/api/proxy.php` with form data
+3. PHP proxy forwards request to eGO API with authentication
+4. PHP returns standardized JSON response
+5. JavaScript displays success/error message
+
+## LeadService Class
+
+The `LeadService` class in `src/services/api/leads.ts` handles all lead and contact submissions.
+
+### Property Lead Submission
+
+Used when a visitor inquires about a specific property:
+
+```typescript
+LeadService.submitPropertyLead({
+  name: "John Doe",
+  email: "john@example.com",
+  phone: "+34 600 123 456",
+  property_id: "ADO1234",
+  message: "I'm interested in this property"
+});
+```
+
+#### Form Data Structure
+
+<ParamField path="name" type="string" required>
+  Full name of the person submitting the lead
+</ParamField>
+
+<ParamField path="email" type="string" required>
+  Email address for contact
+</ParamField>
+
+<ParamField path="phone" type="string" required>
+  Phone number with international format recommended
+</ParamField>
+
+<ParamField path="property_id" type="string" required>
+  Property reference ID from the eGO system (e.g., "ADO1234")
+</ParamField>
+
+<ParamField path="message" type="string">
+  Optional message from the visitor
+</ParamField>
+
+#### Implementation
+
+The method constructs URL parameters and sends to the proxy:
+
+```typescript
+static async submitPropertyLead(lead: any) {
+  const params = new URLSearchParams({
+    NAM: lead.name,
+    EML: lead.email,
+    PHO: lead.phone,
+    OBS: `REFERENCIA: ${lead.property_id}\n\n${lead.message || ''}`,
+    RID: lead.property_id,
+    CTY: "4" // 4 = wants to ask for more info (Lead)
+  });
+
+  const fetchUrl = `/api/proxy.php?type=Lead&${params.toString()}`;
+  const response = await fetch(fetchUrl);
+  const data = await response.json();
+  
+  return { 
+    success: data.success, 
+    message: "Request sent successfully" 
+  };
+}
+```
+
+#### eGO API Parameters
+
+<ParamField path="NAM" type="string" required>
+  Name parameter for eGO API
+</ParamField>
+
+<ParamField path="EML" type="string" required>
+  Email parameter for eGO API
+</ParamField>
+
+<ParamField path="PHO" type="string" required>
+  Phone parameter for eGO API
+</ParamField>
+
+<ParamField path="OBS" type="string">
+  Observations/message text. Includes property reference and user message
+</ParamField>
+
+<ParamField path="RID" type="string" required>
+  Reference ID - the property ID being inquired about
+</ParamField>
+
+<ParamField path="CTY" type="string" required>
+  Contact type: `"4"` = wants to ask for more info (Lead)
+</ParamField>
+
+### General Contact Submission
+
+Used for general contact form (not tied to a specific property):
+
+```typescript
+LeadService.submitGeneralContact({
+  name: "Jane Smith",
+  email: "jane@example.com",
+  phone: "+34 600 987 654",
+  message: "I'd like to schedule a consultation"
+});
+```
+
+#### Implementation
+
+```typescript
+static async submitGeneralContact(contact: any) {
+  const params = new URLSearchParams({
+    NAM: contact.name,
+    EML: contact.email,
+    PHO: contact.phone,
+    OBS: contact.message || '',
+    CTY: "1", // 1 = looking to buy a property (Contact)
+  });
+
+  const fetchUrl = `/api/proxy.php?type=Contact&${params.toString()}`;
+  const response = await fetch(fetchUrl);
+  const data = await response.json();
+  
+  return { 
+    success: data.success, 
+    message: "Contact sent successfully" 
+  };
+}
+```
+
+**Key difference**: Contact endpoint uses `CTY: "1"` and does **not** require `RID` parameter.
+
+## PHP Proxy
+
+The PHP proxy at `public/api/proxy.php` handles server-side API communication.
+
+### Configuration
+
+```php
+$api_token = "u2fW9rOg0Oz5rPGVh+7wowfgDt4IiCugRCFDrohuR3vJzZIwRzFzgfdM3YDqDuN5";
+$base_url = "https://websiteapi.egorealestate.com/v1";
+```
+
+<Warning>
+  The API token is hardcoded in the PHP file. In production, this should be moved to environment variables or a secure configuration file.
+</Warning>
+
+### CORS Headers
+
+The proxy sets permissive CORS headers:
+
+```php
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+```
+
+This allows the frontend to make requests from any domain during development and production.
+
+### Request Flow
+
+1. **Extract Parameters**:
+```php
+$type = isset($_GET['type']) ? $_GET['type'] : 'Properties';
+$params = $_GET;
+unset($params['type']); // Remove internal proxy parameter
+```
+
+2. **Build Target URL**:
+```php
+$endpoint = $type; // "Lead" or "Contact"
+$query = http_build_query($params);
+$url = $base_url . "/" . $endpoint . "?" . $query;
+```
+
+3. **Configure cURL**:
+```php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // CDMON compatibility
+
+$headers = [
+    "AuthorizationToken: $api_token",
+    "Accept: application/json",
+    "User-Agent: AdosaRealEstate/1.0"
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+```
+
+4. **Execute and Return**:
+```php
+$response = curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+// IIS Bypass: Always return 200 to client
+http_response_code(200);
+
+echo json_encode([
+    "success" => ($http_code >= 200 && $http_code < 300),
+    "ego_code" => $http_code,
+    "ego_response" => json_decode($response) ?: $response,
+    "curl_error" => $curl_err,
+]);
+```
+
+### IIS Bypass Strategy
+
+The proxy always returns HTTP 200 to the client, even if the eGO API returns an error:
+
+```php
+// IIS Bypass: Always return 200 so JS can read error body
+http_response_code(200);
+```
+
+This solves an issue where IIS servers block error responses. The JavaScript checks the `success` field in the JSON response instead of the HTTP status code.
+
+### Response Structure
+
+<ResponseField name="success" type="boolean" required>
+  `true` if eGO API returned 2xx status code, `false` otherwise
+</ResponseField>
+
+<ResponseField name="ego_code" type="number" required>
+  The actual HTTP status code from the eGO API
+</ResponseField>
+
+<ResponseField name="ego_response" type="object" required>
+  Parsed JSON response from eGO API, or raw text if not JSON
+</ResponseField>
+
+<ResponseField name="curl_error" type="string">
+  cURL error message if request failed at network level
+</ResponseField>
+
+<ResponseField name="debug_url" type="string">
+  Full URL that was requested (for debugging)
+</ResponseField>
+
+<ResponseField name="debug_method" type="string">
+  HTTP method used (always "GET" for eGO API)
+</ResponseField>
+
+## Error Handling
+
+Both `submitPropertyLead()` and `submitGeneralContact()` include try-catch error handling:
+
+```typescript
+try {
+  const response = await fetch(fetchUrl);
+  const data = await response.json();
+
+  if (!data.success) {
+    console.error("❌ eGO Error:", data.ego_code, data.ego_response);
+    throw new Error(`eGO Error: ${data.ego_code}`);
+  }
+
+  return { success: true, message: "Request sent successfully" };
+} catch (error: any) {
+  console.error("❌ Critical failure:", error);
+  return { success: false, message: "Error sending request" };
+}
+```
+
+**Important**: Methods return `{ success: false }` instead of throwing errors, allowing the UI to display user-friendly error messages.
+
+## Contact Type Codes
+
+The `CTY` parameter defines the type of contact:
+
+| Code | Type | Description |
+|------|------|-------------|
+| `"1"` | Contact | General inquiry - looking to buy a property |
+| `"4"` | Lead | Specific property inquiry - wants more info |
+
+These codes are defined by the eGO Real Estate API specification.
+
+## Frontend Integration
+
+Example of using LeadService in an Astro component:
+
+```astro
+---
+import { LeadService } from '../services/api/leads';
+---
+
+<form id="property-form">
+  <input name="name" required />
+  <input name="email" type="email" required />
+  <input name="phone" required />
+  <textarea name="message"></textarea>
+  <input type="hidden" name="property_id" value={propertyId} />
+  <button type="submit">Send</button>
+</form>
+
+<script>
+  const form = document.getElementById('property-form');
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    
+    const result = await LeadService.submitPropertyLead({
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      property_id: formData.get('property_id'),
+      message: formData.get('message')
+    });
+    
+    if (result.success) {
+      alert('Thank you! We will contact you soon.');
+      form.reset();
+    } else {
+      alert('Error sending form. Please try again.');
+    }
+  });
+</script>
+```
+
+## Security Considerations
+
+1. **API Token Exposure**: The PHP proxy keeps the API token server-side, preventing exposure in client-side code
+2. **CORS Protection**: While the proxy allows all origins (`*`), this is acceptable for public lead forms
+3. **Rate Limiting**: The eGO API may rate limit requests. Consider implementing client-side throttling for forms
+4. **Input Validation**: Always validate and sanitize user input before submission
+5. **SSL/TLS**: All requests use HTTPS to encrypt data in transit
+
+## Testing
+
+Test lead submission with curl:
+
+```bash
+curl "https://yourdomain.com/api/proxy.php?type=Lead&NAM=Test&EML=test@test.com&PHO=123456789&RID=ADO1234&CTY=4&OBS=Test%20message"
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "ego_code": 200,
+  "ego_response": { ... },
+  "curl_error": ""
+}
+```
+
+## Related Documentation
+
+- [eGO Real Estate API](/api/ego-real-estate) - Core API integration
+- [Environment Variables](/api/environment-variables) - Configuration setup
+- [Forms Component](/components/forms) - Frontend form components

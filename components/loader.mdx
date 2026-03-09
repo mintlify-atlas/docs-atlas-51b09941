@@ -1,0 +1,367 @@
+---
+title: Loader Component
+description: Initial page loading animation with progress bar
+---
+
+## Overview
+
+The Loader component displays an animated loading screen on initial page load, featuring the Adosa logo, a progress bar, and a percentage counter. It uses GSAP for smooth animations and includes intelligent behavior to avoid showing on subsequent navigation.
+
+## Location
+
+```
+src/components/Loader.astro
+```
+
+## Usage
+
+```astro
+---
+import Loader from '../components/Loader.astro';
+---
+
+<!DOCTYPE html>
+<html>
+  <head>...</head>
+  <body>
+    <Loader />
+    <!-- Rest of page content -->
+  </body>
+</html>
+```
+
+<Note>
+  The Loader should be placed at the beginning of the `<body>` tag to ensure it displays before any content.
+</Note>
+
+## Structure
+
+```astro title="src/components/Loader.astro"
+<div id="initial-loader" class="loader-container">
+  <div class="loader-content">
+    <img class="loader-logo" src="/Logo_adosa.svg" alt="Logo Adosa" />
+    <div class="loader-progress-bar">
+      <div class="loader-progress-fill"></div>
+    </div>
+    <div class="loader-percentage">0%</div>
+  </div>
+</div>
+```
+
+## Behavior Logic
+
+The loader uses smart detection to determine when to display:
+
+<Tabs>
+  <Tab title="When Loader Shows">
+    The loader appears when:
+    
+    1. **First visit in session** - User hasn't loaded any page yet
+    2. **Page reload** - User manually refreshes the page (F5, Cmd+R)
+    3. **Heavy pages** - Always shows on `/propiedades` page
+    
+    ```javascript
+    function shouldRunLoader() {
+      // 1. Check if it's a reload
+      const navEntries = performance.getEntriesByType('navigation');
+      if (navEntries[0]?.type === 'reload') return true;
+      
+      // 2. Always run on propiedades (heavy page)
+      if (window.location.pathname.includes('/propiedades')) return true;
+      
+      // 3. Check session storage (first visit)
+      if (!sessionStorage.getItem('ADOSA_LOADED')) return true;
+      
+      return false;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="When Loader Skips">
+    The loader is hidden when:
+    
+    - User navigates to a new page (not first load)
+    - Session storage indicates previous load
+    - Not a page reload
+    - Not the properties page
+    
+    This prevents the "flash" on every page navigation, improving UX.
+  </Tab>
+</Tabs>
+
+### Inline Script Prevention
+
+An inline script runs immediately during HTML parsing to hide the loader before rendering:
+
+```html
+<script is:inline>
+  (function () {
+    var isPropiedades = window.location.pathname.indexOf('/propiedades') !== -1;
+    if (isPropiedades) return; // Let loader run
+    
+    var hasLoaded = sessionStorage.getItem('ADOSA_LOADED');
+    if (hasLoaded && !isReload) {
+      var el = document.getElementById('initial-loader');
+      if (el) el.style.display = 'none';
+    }
+  })();
+</script>
+```
+
+<Warning>
+  This inline script is critical for preventing the "0% flash" on heavy pages. Do not remove the `is:inline` attribute.
+</Warning>
+
+## Animation Sequence
+
+The loader uses GSAP for smooth animations:
+
+### 1. Logo Fade In
+
+```javascript
+gsap.to(logo, {
+  opacity: 1,
+  y: 0,
+  duration: 0.8,
+  ease: 'power2.out'
+});
+```
+
+### 2. Progress Bar Animation
+
+```javascript
+let progress = { value: 0 };
+
+gsap.to(progress, {
+  value: 100,
+  duration: 1.5,
+  ease: 'power2.inOut',
+  onUpdate: () => {
+    const val = Math.round(progress.value);
+    fill.style.width = `${val}%`;
+    percentage.textContent = `${val}%`;
+  },
+  onComplete: () => {
+    // Slide out loader
+  }
+});
+```
+
+### 3. Slide Out Exit
+
+```javascript
+gsap.to(loader, {
+  xPercent: -100,
+  duration: 1.0,
+  ease: 'power4.inOut',
+  delay: 0.2,
+  onComplete: () => {
+    document.body.style.overflow = '';
+    loader.style.display = 'none';
+    window.dispatchEvent(new CustomEvent('loader-complete'));
+  }
+});
+```
+
+<Note>
+  The `loader-complete` event is dispatched when animation finishes, allowing other components to react.
+</Note>
+
+## Styling
+
+### Container
+
+<ParamField path="position" type="string" default="fixed">
+  Full-screen overlay covering viewport
+</ParamField>
+
+<ParamField path="z-index" type="number" default="9999">
+  Highest z-index to stay above all content
+</ParamField>
+
+<ParamField path="background-color" type="color" default="var(--color-1)">
+  Matches site background (beige/cream)
+</ParamField>
+
+```css
+.loader-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--color-1);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+```
+
+### Logo
+
+```css
+.loader-logo {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  padding: 2rem;
+}
+```
+
+### Progress Bar
+
+<ParamField path="width" type="string" default="200px">
+  Fixed width progress bar
+</ParamField>
+
+<ParamField path="height" type="string" default="2px">
+  Thin elegant line
+</ParamField>
+
+```css
+.loader-progress-bar {
+  width: 200px;
+  height: 2px;
+  background-color: rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.loader-progress-fill {
+  position: absolute;
+  width: 0%;
+  height: 100%;
+  background-color: var(--color-3); /* Gold accent */
+  transition: width 0.1s linear;
+}
+```
+
+### Percentage Display
+
+```css
+.loader-percentage {
+  font-size: 0.9rem;
+  font-family: var(--font-main);
+  color: var(--color-2);
+  font-weight: 500;
+}
+```
+
+## Customization
+
+### Changing Duration
+
+Adjust the animation timing:
+
+```javascript
+gsap.to(progress, {
+  value: 100,
+  duration: 2.0, // Slower: 2 seconds
+  ease: 'power2.inOut',
+  // ...
+});
+```
+
+### Changing Exit Animation
+
+Modify the slide-out direction:
+
+```javascript
+// Slide right instead of left
+gsap.to(loader, {
+  xPercent: 100, // Changed from -100
+  duration: 1.0,
+  ease: 'power4.inOut'
+});
+
+// Fade out instead of slide
+gsap.to(loader, {
+  opacity: 0,
+  duration: 0.6,
+  ease: 'power2.inOut'
+});
+```
+
+### Disabling for Specific Pages
+
+Modify the `shouldRunLoader()` function:
+
+```javascript
+function shouldRunLoader() {
+  // Never show on /contact page
+  if (window.location.pathname.includes('/contacto')) return false;
+  
+  // Your existing logic
+  // ...
+}
+```
+
+### Changing Colors
+
+```css
+.loader-container {
+  background-color: #your-bg-color;
+}
+
+.loader-progress-fill {
+  background-color: #your-accent-color;
+}
+
+.loader-percentage {
+  color: #your-text-color;
+}
+```
+
+## Session Storage
+
+The loader uses `sessionStorage` to track if a page has been loaded:
+
+```javascript
+// Set flag after loader runs
+sessionStorage.setItem('ADOSA_LOADED', 'true');
+
+// Check flag before showing
+if (!sessionStorage.getItem('ADOSA_LOADED')) {
+  // Show loader
+}
+```
+
+<Note>
+  Session storage is cleared when the browser tab is closed, so first load after reopening will show the loader again.
+</Note>
+
+## Body Scroll Control
+
+The loader prevents scrolling during animation:
+
+```javascript
+// Disable scroll when loader is active
+document.body.style.overflow = 'hidden';
+
+// Re-enable after animation
+document.body.style.overflow = '';
+```
+
+## Events
+
+Listen for loader completion in other components:
+
+```javascript
+window.addEventListener('loader-complete', () => {
+  console.log('Loader finished!');
+  // Initialize other animations
+});
+```
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="Navigation" icon="compass" href="/components/navigation">
+    Header navigation component
+  </Card>
+  
+  <Card title="GSAP Integration" icon="wand-magic-sparkles" href="/styling/animations">
+    Learn about GSAP animations
+  </Card>
+</CardGroup>

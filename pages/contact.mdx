@@ -1,0 +1,403 @@
+---
+title: Contact Page
+description: General contact page with form submission and company information
+---
+
+The contact page provides a simple way for users to reach out to Adosa Group with general inquiries.
+
+## Route
+
+- **Path**: `/contacto` (Spanish) or `/en/contacto` (English)
+- **File**: `src/pages/[...lang]/contacto.astro`
+- **Type**: Static page with client-side form handling
+
+## Page Structure
+
+Single-section layout with contact information and form:
+
+```astro title="src/pages/[...lang]/contacto.astro"
+<BaseLayout
+  title={isEn ? "Contact | Adosa Group" : "Contacto | Grupo Adosa"}
+  lang={lang}
+  noindex={true}
+>
+  <Navigation />
+
+  <main class="main-content">
+    <section class="contact-hero-section light-bg">
+      <div class="container contact-container">
+        <div class="contact-info">
+          {/* Company information */}
+        </div>
+
+        <form class="contact-form" id="general-contact-form">
+          {/* Form fields */}
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+```
+
+## Layout Structure
+
+Two-column grid layout:
+
+```css
+.contact-hero-section {
+  min-height: 80vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rem 2rem;
+}
+
+.contact-container {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8rem;
+  width: 100%;
+  max-width: 1200px;
+}
+```
+
+## Contact Information
+
+Left column displays company details:
+
+```astro
+<div class="contact-info">
+  <h1 class="hero-title">{t("contact.title")}</h1>
+  
+  <div class="info-block">
+    <h2>{isEn ? "Visit us" : "Visítanos"}</h2>
+    <p>C/ 19 de octubre, 35</p>
+    <p>San Pedro Alcántara, Marbella<br />Málaga, España</p>
+  </div>
+  
+  <div class="info-block">
+    <h2>{isEn ? "Call us" : "Llámanos"}</h2>
+    <p><a href="tel:+34687541053">+34 687 541 053</a></p>
+    <p><a href="tel:+34637819500">+34 637 819 500</a></p>
+  </div>
+  
+  <div class="info-block">
+    <h2>{isEn ? "Write us" : "Escríbenos"}</h2>
+    <p>
+      <a href="mailto:info@grupoadosa.com">info@grupoadosa.com</a>
+    </p>
+  </div>
+</div>
+```
+
+**Info Block Styles:**
+```css
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.info-block h2 {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-4);
+}
+
+.info-block p,
+.info-block a {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  color: var(--color-4);
+  opacity: 0.8;
+  text-decoration: none;
+}
+```
+
+## Contact Form
+
+Right column contains the contact form:
+
+```astro
+<form class="contact-form" id="general-contact-form">
+  <div class="form-group">
+    <label>{t("contact.name")}</label>
+    <input
+      type="text"
+      name="name"
+      required
+      placeholder={isEn ? "Your name" : "Tu nombre"}
+    />
+  </div>
+  
+  <div class="form-group">
+    <label>{t("contact.phone")}</label>
+    <input
+      type="tel"
+      name="phone"
+      required
+      placeholder={isEn ? "Your phone" : "Tu telefono"}
+    />
+  </div>
+  
+  <div class="form-group">
+    <label>{t("contact.email")}</label>
+    <input
+      type="email"
+      name="email"
+      required
+      placeholder="tu@email.com"
+    />
+  </div>
+  
+  <div class="form-group">
+    <label>{t("contact.message")}</label>
+    <textarea
+      name="message"
+      rows="5"
+      required
+      placeholder={isEn
+        ? "How can we help you?"
+        : "¿En qué podemos ayudarte?"}
+    ></textarea>
+  </div>
+  
+  <button type="submit" class="submit-btn">{t("contact.send")}</button>
+</form>
+```
+
+### Form Styles
+
+Minimalist design with underline inputs:
+
+```css
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+  color: var(--color-4);
+}
+
+input,
+textarea {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 1rem 0;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  transition: border-color 0.3s;
+  color: var(--color-4);
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-bottom-color: var(--color-4);
+}
+
+.submit-btn {
+  margin-top: 1rem;
+  background: var(--color-4);
+  color: #fff;
+  border: none;
+  padding: 1rem 3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  width: fit-content;
+  transition: opacity 0.3s;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}
+```
+
+## Form Submission
+
+Client-side form handling with API integration:
+
+```typescript title="src/pages/[...lang]/contacto.astro"
+const form = document.querySelector(".contact-form") as HTMLFormElement;
+
+if (form) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const btn = form.querySelector(".submit-btn") as HTMLButtonElement;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    const formData = new FormData(form);
+    const contactData = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      phone: formData.get("phone") as string,
+      message: formData.get("message") as string,
+      source: "web_contact_page",
+    };
+
+    try {
+      const { LeadService } = await import("../../services/api/leads");
+      const response = await LeadService.submitGeneralContact(contactData);
+
+      if (response.success) {
+        alert(response.message);
+        form.reset();
+      } else {
+        alert("Error: " + response.message);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error al enviar el mensaje.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+}
+```
+
+### Lead Service
+
+The form uses `LeadService.submitGeneralContact()` to submit data:
+
+```typescript title="src/services/api/leads.ts"
+export class LeadService {
+  static async submitGeneralContact(data: {
+    name: string;
+    email: string;
+    phone: string;
+    message: string;
+    source: string;
+  }) {
+    try {
+      const response = await fetch("/api/leads/general", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: "Error submitting form",
+      };
+    }
+  }
+}
+```
+
+## Hero Animation
+
+Title reveal animation on page load:
+
+```typescript
+import { gsap } from "gsap";
+
+function playHeroAnimation() {
+  gsap.to(".hero-title", {
+    y: 0,
+    opacity: 1,
+    duration: 1.2,
+    ease: "power3.out",
+    delay: 0.2,
+  });
+}
+
+if ((window as any).__pageReady) {
+  playHeroAnimation();
+} else {
+  window.addEventListener("page-ready", playHeroAnimation, { once: true });
+}
+```
+
+## Mobile Responsiveness
+
+Switches to single-column layout on mobile:
+
+```css
+@media (max-width: 900px) {
+  .contact-hero-section {
+    padding: 6rem 1.5rem;
+  }
+  
+  .contact-container {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+  }
+  
+  .hero-title {
+    font-size: 3rem;
+  }
+}
+```
+
+## Internationalization
+
+Translation keys used:
+
+```typescript
+t("contact.title")      // "Contacto" / "Contact"
+t("contact.name")       // "Nombre" / "Name"
+t("contact.phone")      // "Teléfono" / "Phone"
+t("contact.email")      // "Email" / "Email"
+t("contact.message")    // "Mensaje" / "Message"
+t("contact.send")       // "Enviar" / "Send"
+```
+
+## Form States
+
+**Default State:**
+- All fields empty
+- Submit button enabled
+- Button text: "Enviar" / "Send"
+
+**Submitting State:**
+- Button disabled
+- Button text: "Enviando..."
+- Form fields disabled
+
+**Success State:**
+- Alert with success message
+- Form resets to default
+- Button re-enabled
+
+**Error State:**
+- Alert with error message
+- Form remains filled
+- Button re-enabled
+
+## Validation
+
+- All fields are required (HTML5 validation)
+- Email field validates email format
+- Phone field accepts tel input
+- No custom validation messages (browser default)
+
+## Related Files
+
+- Service: `src/services/api/leads.ts`
+- Layout: `src/layouts/BaseLayout.astro`
+- Components: `src/components/Navigation.astro`, `src/components/Footer.astro`
+- i18n: `src/i18n/utils.ts`

@@ -1,0 +1,464 @@
+---
+title: 'Design System'
+description: 'CSS variables, component styles, and design tokens for Adosa Real Estate'
+---
+
+## Overview
+
+Adosa Real Estate uses a custom CSS design system built with CSS custom properties (variables) for consistent theming across the application. The system is defined in two main files:
+
+- `src/styles/theme.css` - Core design tokens
+- `src/styles/global.css` - Global styles and utilities
+
+## Color Palette
+
+The site uses a premium color palette with warm, earthy tones:
+
+<CodeGroup>
+
+```css Theme Colors
+:root {
+  /* Primary Colors */
+  --color-1: #F2F1EB;  /* Background (Beige Light) */
+  --color-2: #AEADA5;  /* Secondary (Gray Medium) */
+  --color-3: #D7AE56;  /* Accent (Gold/Ochre) */
+  --color-4: #53534B;  /* Text (Dark Gray Ochre) */
+
+  /* Additional Colors */
+  --color-overlay: #1a1a1a;
+  --color-text-inverse: #ffffff;
+}
+```
+
+```css Dark Theme
+[data-theme="dark"] {
+  --color-1: #1a1a1a;
+  --color-4: #F2F1EB;
+}
+```
+
+</CodeGroup>
+
+<CardGroup cols={4}>
+
+<Card title="Color 1" icon="square">
+  <div style={{background: '#F2F1EB', width: '100%', height: '60px', borderRadius: '8px'}}></div>
+  `#F2F1EB` - Background
+</Card>
+
+<Card title="Color 2" icon="square">
+  <div style={{background: '#AEADA5', width: '100%', height: '60px', borderRadius: '8px'}}></div>
+  `#AEADA5` - Secondary
+</Card>
+
+<Card title="Color 3" icon="square">
+  <div style={{background: '#D7AE56', width: '100%', height: '60px', borderRadius: '8px'}}></div>
+  `#D7AE56` - Accent Gold
+</Card>
+
+<Card title="Color 4" icon="square">
+  <div style={{background: '#53534B', width: '100%', height: '60px', borderRadius: '8px'}}></div>
+  `#53534B` - Text
+</Card>
+
+</CardGroup>
+
+<Info>
+  The color palette creates a sophisticated, premium feel appropriate for luxury real estate.
+</Info>
+
+## Typography
+
+### Font Family
+
+The site uses **Onest** from Google Fonts for both headings and body text:
+
+```css
+:root {
+  --font-heading: 'Onest', sans-serif;
+  --font-body: 'Onest', sans-serif;
+  --font-main: var(--font-body); /* Alias for compatibility */
+}
+```
+
+Fonts are loaded in `BaseLayout.astro`:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap" rel="stylesheet" />
+```
+
+### Font Scale
+
+<Tabs>
+  <Tab title="Desktop">
+    ```css
+    :root {
+      --font-size-h1: 4.5rem;   /* 72px */
+      --font-size-h2: 3.5rem;   /* 56px */
+      --font-size-h3: 2rem;     /* 32px */
+      --font-size-p: 1.1rem;    /* 17.6px */
+      --font-size-nav: 0.9rem;  /* 14.4px */
+    }
+    ```
+  </Tab>
+  <Tab title="Mobile">
+    ```css
+    @media (max-width: 768px) {
+      :root {
+        --font-size-h1: 2.8rem;  /* 44.8px */
+        --font-size-h2: 2.2rem;  /* 35.2px */
+        --font-size-h3: 1.5rem;  /* 24px */
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Responsive">
+    ```css
+    /* Using clamp() for fluid typography */
+    h1 {
+      font-size: clamp(2.5rem, 5vw, var(--font-size-h1));
+      font-weight: 700;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4vw, var(--font-size-h2));
+    }
+
+    h3 {
+      font-size: clamp(1.5rem, 3vw, var(--font-size-h3));
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Layout Utilities
+
+### Container
+
+The `.container` class provides consistent content width and padding:
+
+```css
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  position: relative;
+  z-index: 2;
+}
+```
+
+### Section Utilities
+
+```css
+.section {
+  padding: var(--spacing-xl) 0;
+}
+
+.section-fullscreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: var(--spacing-xl) 0;
+}
+```
+
+### Spacing Variables
+
+```css
+:root {
+  --spacing-container: 4rem;    /* 64px */
+  --height-nav: 90px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --spacing-container: 1.5rem; /* 24px */
+    --height-nav: 70px;
+  }
+}
+```
+
+## Button Styles
+
+### Base Button
+
+```css
+.btn {
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  text-decoration: none;
+}
+```
+
+### Button Variants
+
+<Tabs>
+  <Tab title="Primary">
+    ```css
+    .btn-primary {
+      background-color: var(--color-3); /* Gold */
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(215, 174, 86, 0.3);
+      opacity: 1;
+    }
+    ```
+  </Tab>
+  <Tab title="Outline">
+    ```css
+    .btn-outline {
+      background-color: transparent;
+      color: var(--color-4);
+      border: 2px solid var(--color-4);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--color-4);
+      color: white;
+      opacity: 1;
+    }
+    ```
+  </Tab>
+  <Tab title="Mobile">
+    ```css
+    @media (max-width: 768px) {
+      .btn {
+        padding: 0.7rem 1.5rem;
+        font-size: 0.85rem;
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Buttons include hover animations with smooth transforms and custom shadows.
+</Info>
+
+## Grid System
+
+Flexible grid utilities for responsive layouts:
+
+```css
+.grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Mobile: Stack all grids */
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+### Usage Example
+
+```astro
+<div class="grid grid-3">
+  <div class="card">Item 1</div>
+  <div class="card">Item 2</div>
+  <div class="card">Item 3</div>
+</div>
+```
+
+## Animation Variables
+
+```css
+:root {
+  --ease-premium: cubic-bezier(0.25, 1, 0.5, 1);
+  --duration-slow: 1.2s;
+  --duration-medium: 0.8s;
+}
+```
+
+Animation utilities for GSAP integration:
+
+```css
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(50px);
+}
+
+.text-reveal {
+  opacity: 0;
+  transform: translateY(60px);
+  will-change: transform, opacity;
+}
+
+/* Stagger delay classes */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+/* ... up to .delay-600 */
+```
+
+## Utility Classes
+
+<CodeGroup>
+
+```css Text Utilities
+.text-center {
+  text-align: center;
+}
+
+.text-secondary {
+  color: var(--color-2);
+}
+```
+
+```css Theme Utilities
+.theme-dark {
+  --color-4: #f2f1eb; /* Light text on dark bg */
+  --color-2: #ccc;
+}
+
+.theme-dark p,
+.theme-dark h2,
+.theme-dark h3 {
+  color: var(--color-4);
+}
+```
+
+```css Animation Utilities
+.parallax-bg {
+  will-change: transform;
+}
+
+.zoom-on-hover {
+  transition: transform var(--transition-smooth);
+  overflow: hidden;
+}
+
+.zoom-on-hover:hover {
+  transform: scale(1.05);
+}
+```
+
+</CodeGroup>
+
+## Responsive Design
+
+### Breakpoints
+
+The primary breakpoint is `768px` for mobile/desktop split:
+
+```css
+@media (max-width: 768px) {
+  /* Mobile styles */
+}
+
+/* Desktop-first approach */
+```
+
+<Warning>
+  Lenis smooth scroll is **disabled on mobile** (screens < 1025px) to preserve native touch scrolling.
+</Warning>
+
+## Print Styles
+
+Dedicated print styles for property PDFs:
+
+```css
+@media print {
+  @page {
+    margin: 1.5cm !important;
+    size: auto;
+  }
+  
+  .navigation,
+  .footer,
+  .floating-dock {
+    display: none !important;
+  }
+  
+  .print-only-wc {
+    display: block !important;
+  }
+}
+```
+
+See `src/styles/global.css:368` for the complete print stylesheet.
+
+## Best Practices
+
+<Steps>
+  <Step title="Use CSS Variables">
+    Always use design tokens instead of hardcoded values:
+    ```css
+    /* Good */
+    color: var(--color-3);
+    
+    /* Bad */
+    color: #D7AE56;
+    ```
+  </Step>
+  
+  <Step title="Responsive Typography">
+    Use `clamp()` for fluid typography that scales smoothly:
+    ```css
+    font-size: clamp(2rem, 4vw, var(--font-size-h2));
+    ```
+  </Step>
+  
+  <Step title="Mobile-First Grid">
+    Let grids collapse automatically on mobile:
+    ```css
+    .grid-3 {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+    ```
+  </Step>
+</Steps>
+
+## Related Resources
+
+<CardGroup cols={2}>
+
+<Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+  Learn about the overall project structure
+</Card>
+
+<Card title="Components" icon="puzzle-piece" href="/components/overview">
+  Explore pre-built components using the design system
+</Card>
+
+<Card title="Animations" icon="wand-magic-sparkles" href="/styling/animations">
+  Understand GSAP animation patterns
+</Card>
+
+<Card title="Styling Guide" icon="paintbrush" href="/guides/styling">
+  Best practices for custom component styles
+</Card>
+
+</CardGroup>

@@ -1,0 +1,481 @@
+---
+title: 'API Integration'
+description: 'eGO Real Estate API integration with retry logic and rate limiting'
+---
+
+## Overview
+
+Adosa Real Estate integrates with the **eGO Real Estate API** to fetch property listings, images, and details. The integration is located in `src/services/api/` and includes robust error handling, retry logic, and rate limit management.
+
+<Info>
+  API calls are made during **build time** using Astro's SSG (Static Site Generation), not at runtime. This ensures fast page loads and reduces API usage.
+</Info>
+
+## API Configuration
+
+API settings are defined in `src/services/api/api.ts`:
+
+```typescript
+const API_BASE_URL = "https://websiteapi.egorealestate.com";
+const API_TOKEN = import.meta.env.PUBLIC_EGO_API_TOKEN;
+
+// Exponential backoff retry delays (in milliseconds)
+const RETRY_DELAYS = [2000, 5000, 10000];
+```
+
+### Environment Variables
+
+The API token is stored in `.env`:
+
+```bash
+PUBLIC_EGO_API_TOKEN=your_token_here
+```
+
+<Warning>
+  Never commit `.env` to version control. Use `.env.example` for documentation.
+</Warning>
+
+## Core API Client
+
+The `ApiCore` class provides the base request method:
+
+```typescript
+// src/services/api/api.ts
+export class ApiCore {
+  static async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    lang: string = "es-ES"
+  ): Promise<T> {
+    const url = new URL(`${API_BASE_URL}${endpoint}`);
+
+    // Add authentication token to URL and headers
+    url.searchParams.set("AuthorizationToken", API_TOKEN || "");
+    url.searchParams.set("Language", lang);
+
+    const headers = new Headers(options.headers);
+    headers.set("AuthorizationToken", API_TOKEN || "");
+    headers.set("Content-Type", "application/json");
+    headers.set("Language", lang);
+
+    const fetchOptions: RequestInit = {
+      ...options,
+      headers: headers,
+      mode: "cors",
+    };
+
+    // Retry loop with exponential backoff
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+      try {
+        const response = await fetch(url.toString(), fetchOptions);
+
+        // Handle 429 Rate Limit
+        if (response.status === 429 && attempt < RETRY_DELAYS.length) {
+          const delay = RETRY_DELAYS[attempt];
+          console.warn(`⏳ Rate limit 429 — waiting ${delay / 1000}s...`);
+          await sleep(delay);
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        return response.json() as Promise<T>;
+      } catch (error) {
+        if (attempt >= RETRY_DELAYS.length) throw error;
+        await sleep(RETRY_DELAYS[attempt]);
+      }
+    }
+
+    throw new Error("ApiCore: All retries exhausted");
+  }
+}
+```
+
+<Accordion title="Understanding the retry logic">
+  1. **First attempt**: Immediate request
+  2. **Second attempt**: Wait 2 seconds after failure
+  3. **Third attempt**: Wait 5 seconds after failure
+  4. **Fourth attempt**: Wait 10 seconds after failure
+  5. **Final failure**: Throw error to fail the build
+
+  This exponential backoff prevents overwhelming the API while handling temporary issues.
+</Accordion>
+
+## Rate Limiting
+
+The API has rate limits that return `429` status codes. The integration handles this automatically:
+
+<CodeGroup>
+
+```typescript Automatic Retry
+if (response.status === 429 && attempt < RETRY_DELAYS.length) {
+  const delay = RETRY_DELAYS[attempt];
+  console.warn(`⏳ [API-CORE] Rate limit 429 — waiting ${delay / 1000}s...`);
+  await sleep(delay);
+  continue; // Retry the request
+}
+```
+
+```typescript Manual Delay Between Pages
+// src/services/api/properties.ts
+if (page > 1) {
+  console.log(`⏳ [PropertyService] Waiting 1.5s before page ${page}...`);
+  await sleep(1500);
+}
+```
+
+</CodeGroup>
+
+<Info>
+  A **1.5-second delay** is added between paginated requests to prevent rate limiting during builds.
+</Info>
+
+## Property Service
+
+The `PropertyService` class fetches and transforms property data:
+
+```typescript
+// src/services/api/properties.ts
+export class PropertyService {
+  static async getAll(lang: "es-ES" | "en-GB" = "es-ES"): Promise<Property[]> {
+    const propertyMap = new Map<string, Property>();
+    let page = 1;
+    const pageSize = 100;
+
+    try {
+      do {
+        // Delay between pages to avoid rate limit
+        if (page > 1) {
+          await sleep(1500);
+        }
+
+        const params = new URLSearchParams({
+          PAG: page.toString(),
+          NRE: pageSize.toString(),
+          ThumbnailSize: "18",
+        });
+
+        const endpoint = `/v1/Properties?${params.toString()}`;
+        const data = await ApiCore.request<{ 
+          Properties: any[]; 
+          TotalRecords: number 
+        }>(endpoint, {}, lang);
+
+        if (!data.Properties || data.Properties.length === 0) break;
+
+        // Filter for sale properties only
+        data.Properties.forEach((egoObj) => {
+          const businesses = egoObj.PropertyBusiness || [];
+          const isForSale = businesses.some(
+            (b: any) =>
+              b.BusinessID === 1 ||
+              (b.BusinessName || "").toLowerCase().includes("sale") ||
+              (b.BusinessName || "").toLowerCase().includes("venta")
+          );
+
+          if (isForSale) {
+            const mapped = this.mapToLocal(egoObj);
+            propertyMap.set(mapped.id, mapped);
+          }
+        });
+
+        page++;
+      } while (page <= 10 && propertyMap.size < data.TotalRecords);
+
+      const results = Array.from(propertyMap.values());
+
+      // Build guard: Fail if no properties fetched
+      if (results.length === 0) {
+        throw new Error(
+          "⛔ BUILD GUARD: No properties fetched. Aborting build."
+        );
+      }
+
+      console.log(`✅ [PropertyService] ${results.length} properties loaded`);
+      return results;
+    } catch (error) {
+      console.error("❌ Failed importing properties:", error);
+      throw error; // Re-throw to fail the build
+    }
+  }
+
+  static async getById(id: string, lang: "es-ES" | "en-GB" = "es-ES"): Promise<Property | null> {
+    const all = await this.getAll(lang);
+    return all.find((p) => p.id === id) || null;
+  }
+}
+```
+
+<Warning>
+  The **build guard** at line 59-61 prevents deploying an empty site if the API fails. Always keep this safety check.
+</Warning>
+
+## Property Interface
+
+The `Property` type is defined in `src/data/properties.ts`:
+
+```typescript
+export interface Property {
+  // Identifiers
+  id: string;                    // Reference (human-readable)
+  egoId: number;                 // Numeric ID (CRM linking)
+  
+  // Basic Info
+  title: string;
+  location: string;
+  status: "DESTACADO" | "";
+  type: "Apartamento" | "Casa" | "Terreno" | "Parcela" | "Local Comercial" | "Ático";
+  
+  // Specs
+  bedrooms: number;
+  bathrooms: number;
+  size: number;                  // m² built area
+  land_size: number;             // m² plot area
+  price?: string;                // Formatted price (e.g., "450.000 €")
+  price_long?: number;           // Numeric price
+  
+  // Features
+  garage?: boolean;
+  pool?: boolean;
+  
+  // Detailed Fields
+  description?: string;          // Short intro (Spanish)
+  description_en?: string;       // Short intro (English)
+  description_full?: string;     // Full description (Spanish)
+  description_full_en?: string;  // Full description (English)
+  
+  // Location Details
+  province?: string;
+  municipality?: string;
+  neighborhood?: string;
+  coords?: [number, number];     // [Latitude, Longitude]
+  
+  // Additional Info
+  conservation_status?: string;
+  energy_rating?: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  ibi?: number;                  // Annual property tax
+  community_fees?: number;       // Monthly community fees
+  reference?: string;            // Property reference code
+  
+  // Media
+  image: string;                 // Main thumbnail
+  images?: string[];             // Full gallery
+  floor_plans?: string[];        // Floor plan images
+}
+```
+
+## Data Mapping
+
+The `mapToLocal()` method transforms eGO API data to the local `Property` interface:
+
+<Tabs>
+  <Tab title="Type Normalization">
+    ```typescript
+    let type: Property["type"] = "Apartamento";
+    const egoType = (ego.Type || "").toLowerCase();
+
+    if (egoType.includes("comercial") || egoType.includes("local")) {
+      type = "Local Comercial";
+    } else if (egoType.includes("land") || egoType.includes("terreno")) {
+      type = "Parcela";
+    } else if (egoType.includes("penthouse") || egoType.includes("ático")) {
+      type = "Ático";
+    } else if (egoType.includes("house") || egoType.includes("villa")) {
+      type = "Casa";
+    }
+    ```
+  </Tab>
+  <Tab title="Location Detection">
+    ```typescript
+    let location = ego.Municipality || "Marbella";
+    const parish = (ego.Parish || "").toLowerCase();
+
+    if (parish.includes("san pedro")) {
+      location = "San Pedro de Alcántara";
+    }
+    ```
+  </Tab>
+  <Tab title="Feature Detection">
+    ```typescript
+    const hasPool = 
+      hasTag(["POOL", "PISCINA", "PROPERTY_HAS_POOL"]) ||
+      hasFeature(["Pool", "Piscina"]);
+
+    const hasGarage = 
+      hasTag(["GARAGE", "PARKING"]) ||
+      hasFeature(["Garage", "Garaje", "Parking"]);
+    ```
+  </Tab>
+  <Tab title="Price Formatting">
+    ```typescript
+    const saleBusiness = ego.PropertyBusiness?.find(
+      (b: any) => b.BusinessID === 1
+    );
+    const priceValue = saleBusiness?.Prices?.[0]?.PriceValue;
+
+    price: priceValue 
+      ? `${new Intl.NumberFormat("es-ES").format(priceValue)} €` 
+      : "Consulte precio"
+    ```
+  </Tab>
+</Tabs>
+
+## Usage in Pages
+
+Fetch properties during static generation:
+
+```astro
+---
+// src/pages/[...lang]/propiedades.astro
+import { PropertyService } from '../../services/api/properties';
+
+export async function getStaticPaths() {
+  const propertiesES = await PropertyService.getAll('es-ES');
+  const propertiesEN = await PropertyService.getAll('en-GB');
+  
+  return [
+    { params: { lang: undefined }, props: { properties: propertiesES } },
+    { params: { lang: 'en' }, props: { properties: propertiesEN } },
+  ];
+}
+
+const { properties } = Astro.props;
+---
+
+<div class="grid">
+  {properties.map(property => (
+    <div class="property-card">
+      <img src={property.image} alt={property.title} />
+      <h3>{property.title}</h3>
+      <p>{property.price}</p>
+    </div>
+  ))}
+</div>
+```
+
+## Error Handling
+
+<Steps>
+  <Step title="API request fails">
+    Automatic retry with exponential backoff (2s, 5s, 10s delays)
+  </Step>
+  
+  <Step title="All retries exhausted">
+    Error is thrown and logged to console
+  </Step>
+  
+  <Step title="PropertyService catches error">
+    Re-throws to fail the Astro build process
+  </Step>
+  
+  <Step title="Build fails">
+    Prevents deploying an empty or incomplete site
+  </Step>
+</Steps>
+
+<Warning>
+  **Never catch and suppress API errors** without re-throwing. Silent failures can deploy broken sites.
+</Warning>
+
+## API Endpoints
+
+### Get All Properties
+
+```typescript
+GET /v1/Properties?PAG={page}&NRE={pageSize}&ThumbnailSize={size}
+```
+
+**Parameters:**
+- `PAG`: Page number (1-indexed)
+- `NRE`: Number of records per page (max 100)
+- `ThumbnailSize`: Thumbnail quality (1-18)
+- `AuthorizationToken`: API token (in URL and header)
+- `Language`: `es-ES` or `en-GB`
+
+**Response:**
+```json
+{
+  "TotalRecords": 450,
+  "Properties": [
+    {
+      "PropertyID": 12345,
+      "Reference": "VILLA-123",
+      "Title": "Luxury Villa in Marbella",
+      "Type": "House",
+      "Municipality": "Marbella",
+      "Rooms": 4,
+      "Bathrooms": 3,
+      "GrossArea": 250,
+      "LandArea": 800,
+      "PropertyBusiness": [
+        {
+          "BusinessID": 1,
+          "BusinessName": "Sale",
+          "Prices": [{ "PriceValue": 1200000 }]
+        }
+      ],
+      "Images": [
+        { "Url": "https://...", "Thumbnail": "https://..." }
+      ]
+    }
+  ]
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+
+<Card title="Use during build time" icon="hammer">
+  Always fetch in `getStaticPaths()`, never in component code.
+</Card>
+
+<Card title="Cache results" icon="database">
+  Use a `Map` to deduplicate properties across paginated responses.
+</Card>
+
+<Card title="Handle rate limits" icon="clock">
+  Add delays between paginated requests (1.5s recommended).
+</Card>
+
+<Card title="Fail fast" icon="circle-exclamation">
+  Throw errors to prevent deploying incomplete data.
+</Card>
+
+</CardGroup>
+
+## Debugging
+
+Enable verbose logging in `api.ts`:
+
+```typescript
+console.log(`🖥️ [API-CORE] Requesting: ${endpoint} (attempt ${attempt + 1})`);
+console.warn(`⏳ [API-CORE] Rate limit 429 — waiting ${delay / 1000}s...`);
+console.log(`✅ [PropertyService] ${results.length} properties loaded`);
+```
+
+Build-time logs appear in the terminal during `npm run build`.
+
+## Related Resources
+
+<CardGroup cols={2}>
+
+<Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+  Learn about SSG and build-time data fetching
+</Card>
+
+<Card title="Property Interface" icon="file-code" href="/reference/property-interface">
+  Complete Property type documentation
+</Card>
+
+<Card title="Internationalization" icon="language" href="/concepts/internationalization">
+  Using language parameters with the API
+</Card>
+
+<Card title="Error Handling" icon="triangle-exclamation" href="/guides/error-handling">
+  Best practices for API error management
+</Card>
+
+</CardGroup>

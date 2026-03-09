@@ -1,0 +1,290 @@
+---
+title: Navigation Component
+description: Site navigation with language switcher and mobile menu
+---
+
+## Overview
+
+The Navigation component provides a fixed header with desktop menu, language switcher, and mobile overlay menu. It features smart hide/show behavior on scroll and smooth animations.
+
+## Location
+
+```
+src/components/Navigation.astro
+```
+
+## Usage
+
+```astro
+---
+import Navigation from '../components/Navigation.astro';
+---
+
+<Navigation />
+```
+
+The component automatically detects the current language from the URL and manages translations.
+
+## Features
+
+### Desktop Navigation
+
+- Fixed header with blur backdrop
+- Auto-hide on scroll down, show on scroll up
+- Show on mouse hover near top of page
+- Underline animation on link hover
+- Logo with invert filter for dark background
+
+### Language Switcher
+
+Built-in bilingual support (Spanish/English):
+
+```astro title="src/components/Navigation.astro" {16-22}
+const getSwitchPath = (targetLang: string) => {
+  const parts = currentPath.split("/").filter(Boolean);
+  if (parts[0] === "en" || parts[0] === "es") {
+    parts.shift();
+  }
+  return targetLang === "es" ? `/${parts.join("/")}` : `/en/${parts.join("/")}`;
+};
+```
+
+The language switcher:
+- Preserves current page path when switching languages
+- Shows active language with bold styling
+- Available in both desktop and mobile menus
+
+### Mobile Menu
+
+- Hamburger icon transforms to X when open
+- Full-screen overlay with staggered animation
+- Menu items fade in sequentially
+- Prevents scroll when open
+- Closes when navigation link is clicked
+
+## Structure
+
+<CodeGroup>
+```astro title="Desktop Menu"
+<nav class="navigation" id="main-nav">
+  <div class="container nav-container">
+    <a href={translatePath("/")} class="logo">
+      <img src="/Logo_adosa.svg" alt="Logo Adosa" />
+    </a>
+
+    <ul class="nav-menu desktop-only">
+      <li><a href={translatePath("/")}>{t("nav.home")}</a></li>
+      <li><a href={translatePath("/propiedades")}>{t("nav.properties")}</a></li>
+      <li><a href={translatePath("/mision")}>{t("nav.mission")}</a></li>
+      <li><a href={translatePath("/contacto")}>{t("nav.contact")}</a></li>
+      <li class="lang-switcher">
+        <a href={getSwitchPath("es")}>ES</a>
+        <span>|</span>
+        <a href={getSwitchPath("en")}>EN</a>
+      </li>
+    </ul>
+
+    <button class="hamburger" id="hamburger">
+      <div class="line line-1"></div>
+      <div class="line line-2"></div>
+    </button>
+  </div>
+</nav>
+```
+
+```astro title="Mobile Overlay"
+<div class="mobile-overlay" id="mobile-overlay">
+  <div class="overlay-content">
+    <ul class="overlay-menu">
+      <li><a href={translatePath("/")} class="overlay-link">{t("nav.home")}</a></li>
+      <li><a href={translatePath("/propiedades")} class="overlay-link">{t("nav.properties")}</a></li>
+      <li><a href={translatePath("/mision")} class="overlay-link">{t("nav.mission")}</a></li>
+      <li><a href={translatePath("/contacto")} class="overlay-link">{t("nav.contact")}</a></li>
+      <li class="overlay-lang">
+        <a href={getSwitchPath("es")}>ES</a>
+        <span>|</span>
+        <a href={getSwitchPath("en")}>EN</a>
+      </li>
+    </ul>
+  </div>
+</div>
+```
+</CodeGroup>
+
+## Styling
+
+### Navigation Bar
+
+<ParamField path="background-color" type="color" default="rgba(26, 26, 26, 0.35)">
+  Semi-transparent dark background with blur effect
+</ParamField>
+
+<ParamField path="height" type="string" default="var(--height-nav, 90px)">
+  Fixed navigation height
+</ParamField>
+
+<ParamField path="z-index" type="number" default="3000">
+  High z-index to stay above content and mobile overlay
+</ParamField>
+
+### Key Animations
+
+```css title="Hide/Show on Scroll"
+.navigation {
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.navigation.nav-hidden {
+  transform: translateY(-100%);
+}
+```
+
+```css title="Link Underline Effect"
+.nav-menu a::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: var(--color-1);
+  transition: width 0.3s ease;
+}
+
+.nav-menu a:hover::after {
+  width: 100%;
+}
+```
+
+## JavaScript Behavior
+
+The component uses GSAP and vanilla JavaScript for interactions:
+
+<Tabs>
+  <Tab title="Scroll Behavior">
+    ```javascript
+    let lastScrollTop = 0;
+    const threshold = 50;
+
+    window.addEventListener('scroll', () => {
+      const st = window.scrollY;
+      
+      if (st < 10) {
+        nav?.classList.remove('nav-hidden');
+        return;
+      }
+      
+      if (Math.abs(lastScrollTop - st) <= threshold) return;
+      
+      if (st > lastScrollTop) {
+        // Scroll Down -> Hide
+        nav?.classList.add('nav-hidden');
+      } else {
+        // Scroll Up -> Show
+        nav?.classList.remove('nav-hidden');
+      }
+      lastScrollTop = st;
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Mouse Hover">
+    ```javascript
+    // Show nav when mouse is near top
+    document.addEventListener('mousemove', (e) => {
+      if (e.clientY < 100) {
+        nav?.classList.remove('nav-hidden');
+      }
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Mobile Menu">
+    ```javascript
+    hamburger?.addEventListener('click', () => {
+      document.body.classList.toggle('menu-open');
+    });
+
+    // Close menu when link is clicked
+    overlayLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        document.body.classList.remove('menu-open');
+      });
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Responsive Breakpoints
+
+```css
+@media (max-width: 1023px) {
+  /* Hide desktop menu */
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Show hamburger */
+  .hamburger {
+    display: flex;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  /* Adjust overlay for landscape mobile */
+  .mobile-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  
+  .overlay-link {
+    font-size: 1.8rem;
+  }
+}
+```
+
+## Customization
+
+### Changing Navigation Links
+
+Edit both desktop and mobile menu sections:
+
+```astro
+<ul class="nav-menu desktop-only">
+  <li><a href={translatePath("/new-page")}>{t("nav.newPage")}</a></li>
+  <!-- Add more links -->
+</ul>
+
+<ul class="overlay-menu">
+  <li><a href={translatePath("/new-page")} class="overlay-link">{t("nav.newPage")}</a></li>
+  <!-- Add more links -->
+</ul>
+```
+
+### Adjusting Colors
+
+```css
+.navigation {
+  background-color: rgba(26, 26, 26, 0.35); /* Change opacity */
+}
+
+.nav-menu a {
+  color: var(--color-1); /* Link color */
+}
+
+.mobile-overlay {
+  background-color: var(--color-1); /* Overlay background */
+}
+```
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="Footer" icon="rectangle-terminal" href="/components/footer">
+    Site footer component
+  </Card>
+  
+  <Card title="Internationalization" icon="globe" href="/concepts/internationalization">
+    Learn about i18n utilities
+  </Card>
+</CardGroup>

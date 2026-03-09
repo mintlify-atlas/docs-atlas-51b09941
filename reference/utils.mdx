@@ -1,0 +1,246 @@
+---
+title: Utility Functions
+description: Animation and text transformation utilities for Adosa
+---
+
+Utility functions for text animations and slug generation used throughout the Adosa platform.
+
+## Text Animations
+
+### `initTextRevealAnimation()`
+
+Initializes scroll-triggered text reveal animations with swipe-up effect using GSAP.
+
+```typescript
+function initTextRevealAnimation(
+  containerSelector: string,
+  options: TextRevealOptions = {}
+): void
+```
+
+#### Parameters
+
+<ParamField path="containerSelector" type="string" required>
+  CSS selector for the container element
+</ParamField>
+
+<ParamField path="options" type="TextRevealOptions">
+  Optional configuration object for customizing the animation behavior
+</ParamField>
+
+#### TextRevealOptions
+
+```typescript
+interface TextRevealOptions {
+  selector?: string;    // Default: ".text-reveal"
+  stagger?: number;     // Default: 0.15
+  start?: string;       // Default: "top 85%"
+  duration?: number;    // Default: 1.2
+}
+```
+
+<ParamField path="selector" type="string" default=".text-reveal">
+  CSS selector for elements to animate within the container
+</ParamField>
+
+<ParamField path="stagger" type="number" default="0.15">
+  Delay in seconds between each element's animation start
+</ParamField>
+
+<ParamField path="start" type="string" default="top 85%">
+  ScrollTrigger start position (when element reaches this viewport position)
+</ParamField>
+
+<ParamField path="duration" type="number" default="1.2">
+  Animation duration in seconds
+</ParamField>
+
+#### Usage Examples
+
+```typescript
+import { initTextRevealAnimation } from './utils/textRevealAnimation';
+
+// Basic usage - animate text reveals in first section
+initTextRevealAnimation('.content-section:first-of-type');
+
+// Custom animation settings
+initTextRevealAnimation('.my-section', {
+  stagger: 0.2,
+  start: 'top 80%',
+  duration: 1.5
+});
+
+// Animate hero section with faster reveals
+initTextRevealAnimation('.hero', {
+  selector: '.hero-text',
+  stagger: 0.1,
+  duration: 1.0
+});
+```
+
+#### Animation Details
+
+- **Effect**: Elements animate from below (y offset) to their final position with opacity fade-in
+- **Easing**: `power3.out` for smooth deceleration
+- **Trigger**: Animations reverse when scrolling back up
+- **Toggle Actions**: `"play none none reverse"`
+
+---
+
+### `createTextSwipeAnimation()`
+
+Creates a reusable swipe-up animation for text elements triggered when a section occupies more than 50% of the viewport.
+
+```typescript
+function createTextSwipeAnimation(
+  selector: string,
+  sectionTrigger: Element
+): ScrollTrigger | undefined
+```
+
+#### Parameters
+
+<ParamField path="selector" type="string" required>
+  CSS selector of the elements to animate
+</ParamField>
+
+<ParamField path="sectionTrigger" type="Element" required>
+  DOM element of the section that acts as the scroll trigger
+</ParamField>
+
+#### Returns
+
+<ResponseField name="scrollTrigger" type="ScrollTrigger | undefined">
+  Returns the created ScrollTrigger instance, or `undefined` if no elements match the selector
+</ResponseField>
+
+#### Usage Examples
+
+```typescript
+import { createTextSwipeAnimation } from './utils/textSwipeAnimation';
+
+// Animate text in about section
+const section = document.querySelector('.about-section');
+if (section) {
+  createTextSwipeAnimation('.about-text', section);
+}
+
+// Multiple animations in same section
+const missionSection = document.querySelector('.mission');
+if (missionSection) {
+  createTextSwipeAnimation('.mission-heading', missionSection);
+  createTextSwipeAnimation('.mission-description', missionSection);
+}
+```
+
+#### Custom Delays
+
+Elements can specify custom animation delays using the `data-delay` attribute:
+
+```html
+<div class="text-reveal" data-delay="0.5">Appears after 0.5s</div>
+<div class="text-reveal" data-delay="1.0">Appears after 1.0s</div>
+<div class="text-reveal">Uses default stagger timing</div>
+```
+
+#### Animation Details
+
+- **Trigger Point**: When section reaches 50% viewport height (`start: "top 50%"`)
+- **Default Stagger**: 0.15s between elements (index * 0.15)
+- **Duration**: 1.2 seconds
+- **Easing**: `power3.out`
+- **Timeline**: Uses GSAP timeline for orchestrated animations with proper reverse behavior
+
+---
+
+## Text Utilities
+
+### `normalizeSlug()`
+
+Transforms text into URL-friendly slug format by removing accents, converting to lowercase, and replacing spaces with hyphens.
+
+```typescript
+function normalizeSlug(text: string): string
+```
+
+#### Parameters
+
+<ParamField path="text" type="string" required>
+  Input text to convert to a slug
+</ParamField>
+
+#### Returns
+
+<ResponseField name="slug" type="string">
+  URL-friendly slug with no accents, lowercase, hyphen-separated
+</ResponseField>
+
+#### Transformation Rules
+
+1. **NFD Normalization**: Decomposes accented characters
+2. **Remove Diacritics**: Strips accent marks (\u0300-\u036f)
+3. **Lowercase**: Converts all characters to lowercase
+4. **Replace Spaces**: Converts spaces to hyphens
+5. **Remove Special Chars**: Removes non-word characters except hyphens
+6. **Deduplicate Hyphens**: Replaces multiple consecutive hyphens with single hyphen
+7. **Trim Hyphens**: Removes leading and trailing hyphens
+
+#### Usage Examples
+
+```typescript
+import { normalizeSlug } from './utils/slug';
+
+// Spanish text with accents
+normalizeSlug('Málaga Costa del Sol');
+// Returns: "malaga-costa-del-sol"
+
+// Property titles
+normalizeSlug('Villa de Lujo en Marbella');
+// Returns: "villa-de-lujo-en-marbella"
+
+// Special characters
+normalizeSlug('Apartamento 2º planta (Centro)');
+// Returns: "apartamento-2-planta-centro"
+
+// Multiple spaces and hyphens
+normalizeSlug('Casa   --  Nueva');
+// Returns: "casa-nueva"
+```
+
+#### Common Use Cases
+
+```typescript
+// Generate property URLs
+const property = {
+  title: 'Ático en Málaga',
+  id: 123
+};
+const url = `/propiedades/${normalizeSlug(property.title)}-${property.id}`;
+// Result: "/propiedades/atico-en-malaga-123"
+
+// Create location filters
+const location = 'Costa del Sol';
+const filterSlug = normalizeSlug(location);
+// Result: "costa-del-sol"
+```
+
+## Dependencies
+
+The animation utilities require GSAP and ScrollTrigger:
+
+```bash
+npm install gsap
+```
+
+```typescript
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
+```
+
+## Source Locations
+
+- `src/utils/textRevealAnimation.ts:1-56`
+- `src/utils/textSwipeAnimation.ts:1-51`
+- `src/utils/slug.ts:1-13`

@@ -1,0 +1,221 @@
+---
+title: 'Local Development'
+description: 'Set up and run the Adosa Real Estate project locally'
+---
+
+## Running the Development Server
+
+The Adosa Real Estate website is built with Astro. Here's how to get started:
+
+<Steps>
+  <Step title="Install Dependencies">
+    First, navigate to the source directory and install all required packages:
+    
+    ```bash
+    cd ~/workspace/source
+    npm install
+    ```
+    
+    This will install:
+    - Astro 5.16.5
+    - GSAP 3.14.2 for animations
+    - Lenis 1.3.16 for smooth scrolling
+    - Leaflet for maps
+    - QRCode generation library
+  </Step>
+
+  <Step title="Start Development Server">
+    Run the development server with hot reload:
+    
+    ```bash
+    npm run dev
+    ```
+    
+    The site will be available at `http://localhost:4321`
+    
+    <Note>
+      The dev server supports hot module replacement (HMR) - changes to `.astro`, `.ts`, and `.css` files will automatically reload in your browser.
+    </Note>
+  </Step>
+
+  <Step title="Test Production Build">
+    Before deploying, test the production build locally:
+    
+    ```bash
+    # Build the static site
+    npm run build
+    
+    # Preview the build
+    npm run preview
+    ```
+    
+    The preview server will run at `http://localhost:4321` by default.
+  </Step>
+</Steps>
+
+## Development Workflow Best Practices
+
+### File Organization
+
+The project follows Astro's standard structure:
+
+```
+src/
+├── components/     # Reusable Astro components
+│   └── properties/ # Property-specific components
+├── data/          # Static data files
+├── i18n/          # Internationalization utilities
+├── layouts/       # Page layouts (BaseLayout.astro)
+├── pages/         # File-based routing
+├── services/      # API services (eGO API integration)
+│   └── api/
+├── scripts/       # Client-side scripts
+├── styles/        # Global CSS and animations
+├── types/         # TypeScript type definitions
+└── utils/         # Animation utilities
+```
+
+### Hot Reload Behavior
+
+**What triggers hot reload:**
+- `.astro` component changes
+- TypeScript/JavaScript file updates
+- CSS modifications
+- Changes to files in `src/`
+
+**What requires manual refresh:**
+- Changes to `astro.config.mjs`
+- Environment variable updates
+- New package installations
+- Changes to `public/` directory assets
+
+<Tip>
+  The development server caches API responses. If you're working with property data and need fresh API results, restart the dev server.
+</Tip>
+
+## Debugging Tips
+
+### Browser DevTools
+
+The project includes specific debugging hooks:
+
+```typescript
+// Check if Lenis smooth scroll is active
+console.log(window.lenis);
+
+// Check page-ready state
+console.log(window.__pageReady);
+
+// View current scroll position
+window.addEventListener('scroll', () => {
+  console.log('Scroll Y:', window.scrollY);
+});
+```
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Animations not working">
+    Check that GSAP ScrollTrigger is properly initialized:
+    
+    ```javascript
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+    gsap.registerPlugin(ScrollTrigger);
+    ```
+    
+    Verify that the element has the correct class (`.text-reveal` or `.text-swipe`).
+  </Accordion>
+
+  <Accordion title="Smooth scrolling not enabled">
+    Lenis is only active on desktop (>1024px). On mobile/tablet, native scroll is used for better performance.
+    
+    Check: `src/layouts/BaseLayout.astro:85-108`
+  </Accordion>
+
+  <Accordion title="Property data not loading">
+    The API integration fetches from eGO API. Check:
+    
+    1. API credentials are configured
+    2. Network connectivity
+    3. Console for error messages
+    4. `src/services/api/properties.ts:18-71` for rate limiting delays
+    
+    The service includes a 1.5s delay between paginated requests to avoid 429 errors.
+  </Accordion>
+
+  <Accordion title="Build fails with empty properties">
+    The build includes a safety guard at `src/services/api/properties.ts:59-61`:
+    
+    ```typescript
+    if (results.length === 0) {
+      throw new Error("⛔ BUILD GUARD: No properties fetched");
+    }
+    ```
+    
+    This prevents deploying an empty site. Check API connectivity.
+  </Accordion>
+</AccordionGroup>
+
+### TypeScript Type Checking
+
+Run type checking separately:
+
+```bash
+npm run astro check
+```
+
+This validates TypeScript types without building the entire site.
+
+## Environment Configuration
+
+The project uses `astro.config.mjs` for configuration:
+
+```javascript
+export default defineConfig({
+  output: 'static',           // Static site generation
+  compressHTML: true,         // Minify HTML
+  devToolbar: { enabled: false },
+  vite: {
+    ssr: {
+      noExternal: ['gsap'],   // Process GSAP in SSR
+    },
+  },
+});
+```
+
+<Warning>
+  Changes to `astro.config.mjs` require restarting the dev server.
+</Warning>
+
+## Performance Monitoring
+
+During development, monitor:
+
+- **Bundle size**: Check the build output for file sizes
+- **Animation performance**: Open Chrome DevTools > Performance tab
+- **Scroll performance**: Enable "Paint flashing" in DevTools to see repaints
+- **API response times**: Check Network tab for `/v1/Properties` requests
+
+<Tip>
+  The project uses `will-change` CSS properties strategically for animation performance. See `src/styles/animations.css` for examples.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Adding Components" icon="puzzle-piece" href="/guides/adding-components">
+    Learn how to create new Astro components
+  </Card>
+  
+  <Card title="Working with Properties" icon="building" href="/guides/working-with-properties">
+    Understand the property data structure
+  </Card>
+  
+  <Card title="Customizing Animations" icon="wand-magic-sparkles" href="/guides/customizing-animations">
+    Modify GSAP animations and scroll effects
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/ego-real-estate">
+    Explore the PropertyService API
+  </Card>
+</CardGroup>

@@ -1,0 +1,245 @@
+---
+title: "eGO Real Estate API Integration"
+description: "Complete guide to the eGO Real Estate API integration with retry logic, rate limiting, and authentication"
+---
+
+## Overview
+
+The Adosa Real Estate website integrates with the **eGO Real Estate API** to fetch property listings, submit leads, and manage contact forms. The integration is built with robust error handling, automatic retries, and rate limit management.
+
+## Core API Service
+
+The `ApiCore` class in `src/services/api/api.ts` provides the foundation for all API communication.
+
+### Configuration
+
+```typescript
+const API_BASE_URL = "https://websiteapi.egorealestate.com";
+const API_TOKEN = import.meta.env.PUBLIC_EGO_API_TOKEN;
+```
+
+### Retry Logic with Exponential Backoff
+
+The API client implements automatic retry with exponential backoff to handle transient failures and rate limiting:
+
+```typescript
+const RETRY_DELAYS = [2000, 5000, 10000]; // 2s, 5s, 10s
+```
+
+This means:
+- **First retry**: Wait 2 seconds
+- **Second retry**: Wait 5 seconds  
+- **Third retry**: Wait 10 seconds
+- **After 3 retries**: Throw error
+
+### ApiCore.request() Method
+
+The core request method handles all API communication with automatic retry logic:
+
+<ParamField path="endpoint" type="string" required>
+  The API endpoint path (e.g., `/v1/Properties`)
+</ParamField>
+
+<ParamField path="options" type="RequestInit" default="{}">
+  Standard fetch options (headers, method, body, etc.)
+</ParamField>
+
+<ParamField path="lang" type="string" default="es-ES">
+  Language code for the request. Supported values: `es-ES`, `en-GB`
+</ParamField>
+
+### Authentication
+
+Authentication uses the `AuthorizationToken` sent in **both headers and URL parameters** for maximum compatibility:
+
+```typescript
+// Token in URL params
+url.searchParams.set("AuthorizationToken", API_TOKEN || "");
+url.searchParams.set("Language", lang);
+
+// Token in headers
+headers.set("AuthorizationToken", API_TOKEN || "");
+headers.set("Content-Type", "application/json");
+headers.set("Language", lang);
+```
+
+## Rate Limiting (429 Handling)
+
+The API implements automatic rate limit handling:
+
+```typescript
+if (response.status === 429 && attempt < RETRY_DELAYS.length) {
+  const delay = RETRY_DELAYS[attempt];
+  console.warn(`⏳ Rate limit 429 — waiting ${delay / 1000}s before retry...`);
+  await sleep(delay);
+  continue;
+}
+```
+
+When a `429 Too Many Requests` response is received:
+1. Wait for the exponential backoff delay
+2. Automatically retry the request
+3. Continue up to 3 retry attempts
+4. Log warnings for monitoring
+
+## Example: Fetching Properties
+
+The `PropertyService` uses `ApiCore.request()` to fetch property listings:
+
+```typescript
+import { ApiCore } from "./api";
+
+const params = new URLSearchParams({
+  PAG: "1",
+  NRE: "100",
+  ThumbnailSize: "18",
+});
+
+const endpoint = `/v1/Properties?${params.toString()}`;
+const data = await ApiCore.request<{ 
+  Properties: any[]; 
+  TotalRecords: number 
+}>(endpoint, {}, "es-ES");
+```
+
+### Response Structure
+
+<ResponseField name="Properties" type="array" required>
+  Array of property objects from the eGO API
+</ResponseField>
+
+<ResponseField name="TotalRecords" type="number" required>
+  Total number of properties available across all pages
+</ResponseField>
+
+## Pagination Strategy
+
+The `PropertyService.getAll()` method implements intelligent pagination:
+
+```typescript
+let page = 1;
+const pageSize = 100;
+
+do {
+  if (page > 1) {
+    await sleep(1500); // 1.5s delay between pages
+  }
+  
+  const params = new URLSearchParams({
+    PAG: page.toString(),
+    NRE: pageSize.toString(),
+    ThumbnailSize: "18",
+  });
+  
+  const data = await ApiCore.request(endpoint, {}, lang);
+  // Process properties...
+  
+  page++;
+} while (page <= 10 && propertyMap.size < totalRecords);
+```
+
+**Key features:**
+- 1.5 second delay between page requests to avoid rate limits
+- Maximum of 10 pages (1000 properties) to prevent infinite loops
+- Continues until all records are fetched or limit reached
+
+## Error Handling
+
+The API client includes comprehensive error handling:
+
+```typescript
+if (!response.ok) {
+  const errorText = await response.text();
+  console.error(`❌ ERROR API (${response.status}):`, errorText);
+  throw new Error(`API Error: ${response.status}`);
+}
+```
+
+### Network Error Retries
+
+Network errors (connection failures, timeouts) also trigger automatic retries:
+
+```typescript
+catch (error) {
+  if (attempt >= RETRY_DELAYS.length) {
+    console.error("❌ Network error - all retries exhausted");
+    throw error;
+  }
+  // Wait and retry
+  await sleep(RETRY_DELAYS[attempt]);
+}
+```
+
+## Build Safety Guard
+
+The `PropertyService` includes a critical safety check to prevent deploying empty sites:
+
+```typescript
+if (results.length === 0) {
+  throw new Error(
+    "⛔ BUILD GUARD: No properties fetched. Aborting build."
+  );
+}
+```
+
+This ensures that if the API fails or returns no data, the build will **fail** instead of deploying an empty website.
+
+## API Endpoints Used
+
+### Properties Endpoint
+
+```
+GET https://websiteapi.egorealestate.com/v1/Properties
+```
+
+**Query Parameters:**
+- `PAG` - Page number (1-based)
+- `NRE` - Number of records per page
+- `ThumbnailSize` - Image thumbnail size ID
+- `AuthorizationToken` - API authentication token
+- `Language` - Language code (es-ES, en-GB)
+
+### Lead Endpoint
+
+```
+GET https://websiteapi.egorealestate.com/v1/Lead
+```
+
+See [Leads Management](/api/leads-management) for details.
+
+### Contact Endpoint
+
+```
+GET https://websiteapi.egorealestate.com/v1/Contact
+```
+
+See [Leads Management](/api/leads-management) for details.
+
+## CORS Configuration
+
+All requests use CORS mode:
+
+```typescript
+const fetchOptions: RequestInit = {
+  ...options,
+  headers: headers,
+  mode: "cors",
+};
+```
+
+The eGO API supports CORS with the appropriate `Access-Control-Allow-Origin` headers.
+
+## Best Practices
+
+1. **Always use ApiCore.request()** - Don't bypass the core API client
+2. **Respect rate limits** - Add delays between bulk requests
+3. **Handle 429 responses** - The retry logic handles this automatically
+4. **Use language parameter** - Pass correct language for multilingual content
+5. **Monitor logs** - Check console output for API warnings and errors
+6. **Test error scenarios** - Verify retry logic works as expected
+
+## Related Documentation
+
+- [Leads Management](/api/leads-management) - Lead and contact form submission
+- [Environment Variables](/api/environment-variables) - API token configuration
+- [Property Service](/api/ego-real-estate) - Property data handling

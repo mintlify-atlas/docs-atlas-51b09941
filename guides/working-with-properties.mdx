@@ -1,0 +1,560 @@
+---
+title: 'Working with Properties'
+description: 'Understanding property data structure, API integration, and display logic'
+---
+
+## Property Interface
+
+The `Property` type is the core data structure for real estate listings.
+
+**Location:** `src/data/properties.ts:1-44`
+
+```typescript
+export interface Property {
+  // Core Fields
+  id: string;              // Internal ID or CRM Reference
+  egoId: number;           // Mandatory numeric ID for CRM linking
+  title: string;
+  location: string;        // e.g., "Marbella"
+  status: "DESTACADO" | "";  // Featured status
+  type: "Apartamento" | "Casa" | "Terreno" | "Parcela" | 
+        "Local Comercial" | "Ático";
+  
+  // Property Details
+  bedrooms: number;
+  bathrooms: number;
+  size: number;            // Net area in m²
+  land_size: number;
+  price?: string;          // Formatted string ("450.000 €")
+  price_long?: number;     // Numeric value for sorting
+  
+  // Display
+  image: string;           // Main thumbnail for grid
+  images?: string[];       // Full gallery
+  
+  // Features
+  garage?: boolean;
+  pool?: boolean;
+  built_m2?: number;
+  plot_m2?: number;
+  
+  // Descriptions (i18n)
+  description?: string;           // Spanish short
+  description_full?: string;      // Spanish full
+  description_en?: string;        // English short
+  description_full_en?: string;   // English full
+  
+  // Location Details
+  municipality?: string;
+  municipality_en?: string;
+  neighborhood?: string;
+  neighborhood_en?: string;
+  coords?: [number, number];      // [latitude, longitude]
+  
+  // Metadata
+  reference?: string;
+  energy_rating?: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  ibi?: number;
+  community_fees?: number;
+  conservation_status?: string;
+  floor_plans?: string[];
+}
+```
+
+<Info>
+  The Property interface is re-exported through `src/types/index.ts:1-3` for convenient importing.
+</Info>
+
+## Fetching Properties from eGO API
+
+The project integrates with the eGO Real Estate CRM API to fetch property listings.
+
+**Location:** `src/services/api/properties.ts`
+
+### PropertyService Class
+
+```typescript
+import { PropertyService } from '../services/api/properties';
+
+// Fetch all properties (Spanish)
+const properties = await PropertyService.getAll('es-ES');
+
+// Fetch all properties (English)
+const propertiesEn = await PropertyService.getAll('en-GB');
+
+// Fetch single property by ID
+const property = await PropertyService.getById('REF-12345', 'es-ES');
+```
+
+### How It Works
+
+<Steps>
+  <Step title="Paginated API Requests">
+    The service fetches properties in pages of 100, with a 1.5-second delay between requests to avoid rate limiting:
+    
+    ```typescript
+    // From src/services/api/properties.ts:18-53
+    let page = 1;
+    const pageSize = 100;
+    
+    do {
+      if (page > 1) {
+        console.log(`⏳ Waiting 1.5s before page ${page}...`);
+        await sleep(1500);
+      }
+      
+      const params = new URLSearchParams({
+        PAG: page.toString(),
+        NRE: pageSize.toString(),
+        ThumbnailSize: "18",
+      });
+      
+      const endpoint = `/v1/Properties?${params.toString()}`;
+      const data = await ApiCore.request(endpoint, {}, lang);
+      
+      // Process properties...
+      page++;
+    } while (page <= 10 && propertyMap.size < totalRecords);
+    ```
+    
+    <Warning>
+      The API enforces rate limits. The 1.5s delay prevents 429 errors. See `src/services/api/properties.ts:20-23`.
+    </Warning>
+  </Step>
+
+  <Step title="Filter for Sale Properties">
+    Only properties marked for sale are included:
+    
+    ```typescript
+    // From src/services/api/properties.ts:37-48
+    const isForSale = businesses.some(
+      (b: any) =>
+        b.BusinessID === 1 ||
+        b.BusinessName.toLowerCase().includes("sale") ||
+        b.BusinessName.toLowerCase().includes("venta")
+    );
+    
+    if (isForSale) {
+      const mapped = this.mapToLocal(egoObj);
+      propertyMap.set(mapped.id, mapped);
+    }
+    ```
+  </Step>
+
+  <Step title="Data Transformation">
+    The `mapToLocal()` method transforms eGO API data to the local Property interface:
+    
+    ```typescript
+    // From src/services/api/properties.ts:79-201
+    private static mapToLocal(ego: any): Property {
+      // Type normalization
+      let type: Property["type"] = "Apartamento";
+      const egoType = (ego.Type || "").toLowerCase();
+      
+      if (egoType.includes("comercial") || egoType.includes("local")) {
+        type = "Local Comercial";
+      } else if (egoType.includes("land") || egoType.includes("terreno")) {
+        type = "Parcela";
+      } // ... more mappings
+      
+      // Location normalization
+      let location = ego.Municipality || "Marbella";
+      if (parish.includes("san pedro")) {
+        location = "San Pedro de Alcántara";
+      }
+      
+      // Feature detection
+      const hasPool = hasTag(["POOL", "PISCINA"]) || 
+                      hasFeature(["Pool", "Swimming"]);
+      const hasGarage = hasTag(["GARAGE", "PARKING"]) || 
+                        hasFeature(["Garage", "Estacionamiento"]);
+      
+      return {
+        id: ego.Reference,
+        egoId: Number(ego.PropertyID),
+        title: ego.Title || `${type} en ${location}`,
+        location,
+        type,
+        bedrooms: Number(ego.Rooms) || 0,
+        bathrooms: Number(ego.Bathrooms) || 0,
+        pool: hasPool,
+        garage: hasGarage,
+        // ... more fields
+      };
+    }
+    ```
+    
+    See full implementation at `src/services/api/properties.ts:79-201`.
+  </Step>
+
+  <Step title="Build Safety Guard">
+    The service includes a critical safety check:
+    
+    ```typescript
+    // From src/services/api/properties.ts:59-61
+    if (results.length === 0) {
+      throw new Error(
+        "⛔ BUILD GUARD: No properties fetched. Aborting build."
+      );
+    }
+    ```
+    
+    This prevents deploying an empty site if the API fails.
+  </Step>
+</Steps>
+
+## Adding or Modifying Property Fields
+
+<Steps>
+  <Step title="Update the Interface">
+    Add your new field to the Property interface:
+    
+    ```typescript
+    // src/data/properties.ts
+    export interface Property {
+      // ... existing fields
+      
+      // New field
+      year_built?: number;
+      has_elevator?: boolean;
+    }
+    ```
+  </Step>
+
+  <Step title="Update the API Mapper">
+    Modify the `mapToLocal()` method to populate your new field:
+    
+    ```typescript
+    // src/services/api/properties.ts
+    private static mapToLocal(ego: any): Property {
+      // ... existing mapping
+      
+      return {
+        // ... existing fields
+        year_built: ego.YearBuilt ? Number(ego.YearBuilt) : undefined,
+        has_elevator: hasFeature(["Elevator", "Ascensor", "Lift"])
+      };
+    }
+    ```
+  </Step>
+
+  <Step title="Use in Components">
+    Access the new field in your components:
+    
+    ```astro
+    ---
+    import type { Property } from '../types';
+    
+    interface Props {
+      property: Property;
+    }
+    const { property } = Astro.props;
+    ---
+    
+    <div class="property-info">
+      {property.year_built && (
+        <p>Built in {property.year_built}</p>
+      )}
+      {property.has_elevator && (
+        <span class="feature">Elevator</span>
+      )}
+    </div>
+    ```
+  </Step>
+</Steps>
+
+## Filtering Properties
+
+### Client-Side Filtering
+
+Example filter implementation:
+
+```typescript
+// Filter by type
+const apartments = properties.filter(p => p.type === "Apartamento");
+
+// Filter by location
+const marbellaProps = properties.filter(p => 
+  p.location === "Marbella"
+);
+
+// Filter by features
+const withPool = properties.filter(p => p.pool === true);
+
+// Filter by price range
+const affordableProps = properties.filter(p => 
+  p.price_long && p.price_long <= 500000
+);
+
+// Combine filters
+const luxuryApartments = properties.filter(p => 
+  p.type === "Apartamento" &&
+  p.pool === true &&
+  p.price_long && p.price_long > 500000
+);
+```
+
+### Featured Properties
+
+```typescript
+// Get only featured properties
+const featured = properties.filter(p => p.status === "DESTACADO");
+
+// Get non-featured properties
+const regular = properties.filter(p => p.status === "");
+```
+
+<Tip>
+  Featured properties are detected via tags in the eGO API. The mapper looks for tags containing "highlight", "destacado", or "featured". See `src/services/api/properties.ts:112-116`.
+</Tip>
+
+## Display Logic
+
+### Property Grid Example
+
+```astro
+---
+import { PropertyService } from '../services/api/properties';
+import type { Property } from '../types';
+
+const lang = getLangFromUrl(Astro.url);
+const apiLang = lang === 'en' ? 'en-GB' : 'es-ES';
+const properties = await PropertyService.getAll(apiLang);
+
+// Sort by price (highest first)
+const sortedProps = properties.sort((a, b) => 
+  (b.price_long || 0) - (a.price_long || 0)
+);
+
+// Take top 6
+const featured = sortedProps.slice(0, 6);
+---
+
+<div class="property-grid">
+  {featured.map((property) => (
+    <div class="property-card">
+      <img src={property.image} alt={property.title} />
+      <h3>{property.title}</h3>
+      <p class="location">{property.location}</p>
+      <p class="price">{property.price}</p>
+      
+      <div class="features">
+        <span>{property.bedrooms} beds</span>
+        <span>{property.bathrooms} baths</span>
+        <span>{property.size} m²</span>
+      </div>
+      
+      <div class="amenities">
+        {property.pool && <span class="badge">Pool</span>}
+        {property.garage && <span class="badge">Garage</span>}
+      </div>
+      
+      <a href={`/propiedades/${property.id}`} class="btn">View Details</a>
+    </div>
+  ))}
+</div>
+```
+
+### Conditional Display
+
+```astro
+---
+const { property } = Astro.props;
+---
+
+<div class="property-details">
+  {/* Only show if available */}
+  {property.plot_m2 && (
+    <div class="detail-item">
+      <span class="label">Plot Size:</span>
+      <span class="value">{property.plot_m2} m²</span>
+    </div>
+  )}
+  
+  {/* Conditional badge */}
+  {property.status === "DESTACADO" && (
+    <span class="badge featured">Featured</span>
+  )}
+  
+  {/* Multiple images */}
+  {property.images && property.images.length > 0 && (
+    <div class="gallery">
+      {property.images.map((img) => (
+        <img src={img} alt={property.title} />
+      ))}
+    </div>
+  )}
+</div>
+```
+
+## Image Handling
+
+### Primary Image
+
+The `image` field contains the main thumbnail:
+
+```typescript
+// From src/services/api/properties.ts:165-168
+const images = (ego.Images || [])
+  .map((img: any) => img.Url || img.Thumbnail)
+  .filter((url: string) => !!url);
+
+const mainImage = images[0] || ego.Thumbnail || "/images/placeholder.jpg";
+```
+
+### Image Gallery
+
+The `images` array contains all property photos:
+
+```astro
+---
+const { property } = Astro.props;
+---
+
+{property.images && property.images.length > 0 ? (
+  <div class="image-gallery">
+    {property.images.map((imgUrl, index) => (
+      <img 
+        src={imgUrl} 
+        alt={`${property.title} - Photo ${index + 1}`}
+        loading="lazy"
+      />
+    ))}
+  </div>
+) : (
+  <img 
+    src={property.image} 
+    alt={property.title} 
+  />
+)}
+```
+
+<Warning>
+  Always provide fallback images. The mapper uses `"/images/placeholder.jpg"` when no image is available. Ensure this file exists in `public/images/`.
+</Warning>
+
+### Lazy Loading
+
+For performance, use lazy loading on gallery images:
+
+```html
+<img 
+  src={property.image} 
+  alt={property.title}
+  loading="lazy"
+  decoding="async"
+/>
+```
+
+## Internationalization (i18n)
+
+Property descriptions support both Spanish and English:
+
+```astro
+---
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const { property } = Astro.props;
+
+const description = lang === 'en' 
+  ? property.description_en || property.description
+  : property.description;
+  
+const fullDescription = lang === 'en'
+  ? property.description_full_en || property.description_full
+  : property.description_full;
+---
+
+<div class="description">
+  <p>{description}</p>
+  <div class="full" set:html={fullDescription} />
+</div>
+```
+
+<Info>
+  The API is called with `lang` parameter (`'es-ES'` or `'en-GB'`) to fetch localized content. See `src/services/api/properties.ts:11`.
+</Info>
+
+## Coordinates and Maps
+
+Properties include GPS coordinates when available:
+
+```typescript
+// From src/services/api/properties.ts:195
+coords: (ego.GPSLat && ego.GPSLon) 
+  ? [parseFloat(ego.GPSLat), parseFloat(ego.GPSLon)] 
+  : undefined
+```
+
+Use with Leaflet for maps:
+
+```astro
+---
+import type { Property } from '../types';
+const { property } = Astro.props;
+---
+
+{property.coords && (
+  <div id="map" data-lat={property.coords[0]} data-lng={property.coords[1]}>
+  </div>
+)}
+
+<script>
+  import L from 'leaflet';
+  
+  const mapEl = document.getElementById('map');
+  if (mapEl) {
+    const lat = parseFloat(mapEl.dataset.lat!);
+    const lng = parseFloat(mapEl.dataset.lng!);
+    
+    const map = L.map('map').setView([lat, lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.marker([lat, lng]).addTo(map);
+  }
+</script>
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Cache API Results">
+    Property data is fetched at build time (SSG). Astro caches the results automatically during `npm run build`.
+    
+    For dynamic updates, implement revalidation or use a separate API endpoint.
+  </Accordion>
+  
+  <Accordion title="Handle Missing Data">
+    Always check for optional fields before displaying:
+    
+    ```astro
+    {property.energy_rating && (
+      <span>Energy: {property.energy_rating}</span>
+    )}
+    ```
+  </Accordion>
+  
+  <Accordion title="Normalize Location Names">
+    The mapper includes location normalization logic. When adding new locations, update `src/services/api/properties.ts:103-109`.
+  </Accordion>
+  
+  <Accordion title="Feature Detection">
+    Pool and garage detection uses multiple checks (tags and features). When adding new features, follow the same pattern at `src/services/api/properties.ts:118-162`.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Adding Components" icon="puzzle-piece" href="/guides/adding-components">
+    Create components to display property data
+  </Card>
+  
+  <Card title="Customizing Animations" icon="wand-magic-sparkles" href="/guides/customizing-animations">
+    Add scroll animations to property cards
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/ego-real-estate">
+    Detailed PropertyService documentation
+  </Card>
+</CardGroup>

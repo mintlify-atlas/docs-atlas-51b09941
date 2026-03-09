@@ -1,0 +1,473 @@
+---
+title: 'Internationalization (i18n)'
+description: 'Multi-language support with dynamic routing and translation utilities'
+---
+
+## Overview
+
+Adosa Real Estate supports **Spanish (default)** and **English** using a custom i18n implementation with Astro's dynamic routing. The system is located in `src/i18n/` and uses the `[...lang]` routing pattern.
+
+<Info>
+  Spanish content is served at root URLs (`/propiedades`), while English uses the `/en` prefix (`/en/propiedades`).
+</Info>
+
+## Supported Languages
+
+Defined in `src/i18n/ui.ts`:
+
+```typescript
+export const languages = {
+  es: 'Español',
+  en: 'English',
+};
+
+export const defaultLang = 'es';
+```
+
+<CardGroup cols={2}>
+
+<Card title="Spanish (es)" icon="language">
+  Default language - root URLs
+  
+  `/` → `/propiedades` → `/contacto`
+</Card>
+
+<Card title="English (en)" icon="language">
+  Secondary language - `/en` prefix
+  
+  `/en` → `/en/propiedades` → `/en/contacto`
+</Card>
+
+</CardGroup>
+
+## Translation Strings
+
+All UI translations are defined in the `ui` object in `src/i18n/ui.ts`:
+
+```typescript
+export const ui = {
+  es: {
+    'nav.home': 'Sobre Adosa',
+    'nav.properties': 'Propiedades',
+    'nav.mission': 'Misión',
+    'nav.contact': 'Contacto',
+    'property.bedrooms': 'Dorm.',
+    'property.bathrooms': 'Baños',
+    'property.price': 'Precio',
+    // ... more translations
+  },
+  en: {
+    'nav.home': 'About Adosa',
+    'nav.properties': 'Properties',
+    'nav.mission': 'Mission',
+    'nav.contact': 'Contact',
+    'property.bedrooms': 'Beds',
+    'property.bathrooms': 'Baths',
+    'property.price': 'Price',
+    // ... more translations
+  },
+} as const;
+```
+
+<Accordion title="View all available translation keys">
+  - **Navigation**: `nav.home`, `nav.properties`, `nav.mission`, `nav.contact`
+  - **Footer**: `footer.rights`, `footer.privacy`, `footer.cookies`
+  - **Property Details**: `property.bedrooms`, `property.bathrooms`, `property.built`, `property.plot`, `property.price`, `property.details`, `property.description`, `property.location`, `property.type`, `property.reference`, `property.energy`, `property.community`, `property.ibi`
+  - **Property Grid**: `grid.location`, `grid.typology`, `grid.beds`, `grid.baths`, `grid.all`, `grid.any`, `grid.apartment`, `grid.house`, `grid.land`, `grid.featured`
+  - **Contact Form**: `contact.title`, `contact.name`, `contact.phone`, `contact.email`, `contact.message`, `contact.send`
+</Accordion>
+
+## Routing Pattern
+
+### Dynamic Language Routes
+
+All pages use the `[...lang]` catch-all parameter:
+
+```plaintext
+src/pages/
+└── [...lang]/
+    ├── index.astro           → / or /en
+    ├── propiedades.astro     → /propiedades or /en/propiedades
+    ├── contacto.astro        → /contacto or /en/contacto
+    └── propiedades/
+        └── [...slug].astro   → /propiedades/villa-123 or /en/propiedades/villa-123
+```
+
+### Static Path Generation
+
+Each page must export `getStaticPaths()` to generate both language versions:
+
+```typescript
+// src/i18n/utils.ts
+export function getStaticPaths() {
+  return [
+    { params: { lang: undefined } },  // Spanish (default)
+    { params: { lang: 'en' } },       // English
+  ];
+}
+```
+
+Usage in pages:
+
+```astro
+---
+// src/pages/[...lang]/index.astro
+import { getStaticPaths as i18nGetStaticPaths } from '../../i18n/utils';
+
+export async function getStaticPaths() {
+  return i18nGetStaticPaths();
+}
+
+const { lang: langParam } = Astro.params;
+const lang = (langParam || 'es') as 'es' | 'en';
+---
+```
+
+## i18n Utility Functions
+
+### getLangFromUrl()
+
+Extracts the language from the current URL:
+
+```typescript
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+// Returns 'es' or 'en'
+```
+
+<Tabs>
+  <Tab title="Function Definition">
+    ```typescript
+    // src/i18n/utils.ts
+    export function getLangFromUrl(url: URL) {
+      const [, lang] = url.pathname.split('/');
+      if (lang in ui) return lang as keyof typeof ui;
+      return defaultLang;
+    }
+    ```
+  </Tab>
+  <Tab title="Usage">
+    ```astro
+    ---
+    const lang = getLangFromUrl(Astro.url);
+    const isEnglish = lang === 'en';
+    ---
+
+    <p>{isEnglish ? 'Welcome' : 'Bienvenido'}</p>
+    ```
+  </Tab>
+</Tabs>
+
+### useTranslations()
+
+Creates a translation function for the current language:
+
+```typescript
+import { useTranslations } from '../../i18n/utils';
+
+const t = useTranslations(lang);
+```
+
+<CodeGroup>
+
+```typescript Function Definition
+// src/i18n/utils.ts
+export function useTranslations(lang: keyof typeof ui) {
+  return function t(key: keyof typeof ui[typeof defaultLang]) {
+    return ui[lang][key] || ui[defaultLang][key];
+  }
+}
+```
+
+```astro Component Usage
+---
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<nav>
+  <a href="/">{t('nav.home')}</a>
+  <a href="/propiedades">{t('nav.properties')}</a>
+  <a href="/contacto">{t('nav.contact')}</a>
+</nav>
+```
+
+```astro Property Display
+---
+const t = useTranslations(lang);
+const property = { bedrooms: 3, bathrooms: 2 };
+---
+
+<div>
+  <span>{property.bedrooms} {t('property.bedrooms')}</span>
+  <span>{property.bathrooms} {t('property.bathrooms')}</span>
+</div>
+<!-- Output (es): 3 Dorm. | 2 Baños -->
+<!-- Output (en): 3 Beds | 2 Baths -->
+```
+
+</CodeGroup>
+
+<Info>
+  The translation function falls back to Spanish if a key is missing in English.
+</Info>
+
+### useTranslatedPath()
+
+Generates language-aware URLs for navigation:
+
+```typescript
+import { useTranslatedPath } from '../../i18n/utils';
+
+const translatePath = useTranslatedPath(lang);
+```
+
+<Tabs>
+  <Tab title="Function Definition">
+    ```typescript
+    // src/i18n/utils.ts
+    export function useTranslatedPath(lang: keyof typeof ui) {
+      return function translatePath(path: string, l: string = lang) {
+        return l === defaultLang ? path : `/${l}${path}`;
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Usage">
+    ```astro
+    ---
+    const translatePath = useTranslatedPath(lang);
+    ---
+
+    <a href={translatePath('/propiedades')}>Properties</a>
+    <a href={translatePath('/contacto')}>Contact</a>
+
+    <!-- Spanish (lang='es'): -->
+    <!-- /propiedades, /contacto -->
+
+    <!-- English (lang='en'): -->
+    <!-- /en/propiedades, /en/contacto -->
+    ```
+  </Tab>
+  <Tab title="Language Switcher">
+    ```astro
+    ---
+    const translatePath = useTranslatedPath(lang);
+    const currentPath = Astro.url.pathname.replace(/^\/en/, '') || '/';
+    ---
+
+    <div class="lang-switcher">
+      <a href={translatePath(currentPath, 'es')}>ES</a>
+      <a href={translatePath(currentPath, 'en')}>EN</a>
+    </div>
+    ```
+  </Tab>
+</Tabs>
+
+## Complete Example
+
+Here's a full page implementation with i18n:
+
+```astro
+---
+// src/pages/[...lang]/propiedades.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { 
+  getStaticPaths as i18nGetStaticPaths,
+  getLangFromUrl,
+  useTranslations,
+  useTranslatedPath 
+} from '../../i18n/utils';
+import { PropertyService } from '../../services/api/properties';
+
+export async function getStaticPaths() {
+  return i18nGetStaticPaths();
+}
+
+const { lang: langParam } = Astro.params;
+const lang = (langParam || 'es') as 'es' | 'en';
+const t = useTranslations(lang);
+const translatePath = useTranslatedPath(lang);
+
+// Fetch properties in the correct language
+const apiLang = lang === 'en' ? 'en-GB' : 'es-ES';
+const properties = await PropertyService.getAll(apiLang);
+---
+
+<BaseLayout 
+  title={t('nav.properties')} 
+  lang={lang}
+>
+  <h1>{t('nav.properties')}</h1>
+  
+  <div class="property-grid">
+    {properties.map(property => (
+      <a href={translatePath(`/propiedades/${property.id}`)}>
+        <img src={property.image} alt={property.title} />
+        <h3>{property.title}</h3>
+        <p>{property.bedrooms} {t('property.bedrooms')} | {property.bathrooms} {t('property.bathrooms')}</p>
+        <p>{property.price}</p>
+      </a>
+    ))}
+  </div>
+</BaseLayout>
+```
+
+## API Language Support
+
+The eGO Real Estate API is called with language-specific parameters:
+
+```typescript
+// src/services/api/properties.ts
+static async getAll(lang: "es-ES" | "en-GB" = "es-ES"): Promise<Property[]> {
+  const endpoint = '/v1/Properties';
+  const data = await ApiCore.request<{ Properties: any[] }>(endpoint, {}, lang);
+  // ...
+}
+```
+
+The language is passed to API headers:
+
+```typescript
+// src/services/api/api.ts
+url.searchParams.set("Language", lang);
+headers.set("Language", lang);
+```
+
+<Info>
+  Property descriptions, locations, and other content are automatically fetched in the requested language.
+</Info>
+
+## Inline Translations
+
+For page-specific content not in `ui.ts`, use inline conditionals:
+
+```astro
+---
+const isEn = lang === 'en';
+
+const HERO_TITLE = isEn
+  ? "Your real estate agency in San Pedro Alcántara"
+  : "Tu inmobiliaria en San Pedro Alcántara";
+---
+
+<h1>{HERO_TITLE}</h1>
+```
+
+<Warning>
+  For shared UI elements, always add translations to `ui.ts` instead of using inline conditionals.
+</Warning>
+
+## Best Practices
+
+<Steps>
+  <Step title="Always use getStaticPaths()">
+    Every page in `[...lang]/` must export static paths:
+    ```typescript
+    export async function getStaticPaths() {
+      return i18nGetStaticPaths();
+    }
+    ```
+  </Step>
+  
+  <Step title="Extract language early">
+    Get the language at the top of your component:
+    ```typescript
+    const { lang: langParam } = Astro.params;
+    const lang = (langParam || 'es') as 'es' | 'en';
+    ```
+  </Step>
+  
+  <Step title="Use translation functions">
+    Create `t()` and `translatePath()` functions:
+    ```typescript
+    const t = useTranslations(lang);
+    const translatePath = useTranslatedPath(lang);
+    ```
+  </Step>
+  
+  <Step title="Pass language to API calls">
+    Convert to API format when fetching data:
+    ```typescript
+    const apiLang = lang === 'en' ? 'en-GB' : 'es-ES';
+    const data = await PropertyService.getAll(apiLang);
+    ```
+  </Step>
+</Steps>
+
+## Adding a New Language
+
+To add French, for example:
+
+<Steps>
+  <Step title="Update language list">
+    ```typescript
+    // src/i18n/ui.ts
+    export const languages = {
+      es: 'Español',
+      en: 'English',
+      fr: 'Français',
+    };
+    ```
+  </Step>
+  
+  <Step title="Add translations">
+    ```typescript
+    export const ui = {
+      es: { /* ... */ },
+      en: { /* ... */ },
+      fr: {
+        'nav.home': 'À propos d\'Adosa',
+        'nav.properties': 'Propriétés',
+        // ...
+      },
+    } as const;
+    ```
+  </Step>
+  
+  <Step title="Update getStaticPaths()">
+    ```typescript
+    export function getStaticPaths() {
+      return [
+        { params: { lang: undefined } },
+        { params: { lang: 'en' } },
+        { params: { lang: 'fr' } },
+      ];
+    }
+    ```
+  </Step>
+  
+  <Step title="Update API language mapping">
+    ```typescript
+    const apiLang = 
+      lang === 'en' ? 'en-GB' :
+      lang === 'fr' ? 'fr-FR' :
+      'es-ES';
+    ```
+  </Step>
+</Steps>
+
+## Related Resources
+
+<CardGroup cols={2}>
+
+<Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+  Learn about the routing system
+</Card>
+
+<Card title="API Integration" icon="plug" href="/concepts/api-integration">
+  Understand API language parameters
+</Card>
+
+<Card title="Navigation Component" icon="bars" href="/components/navigation">
+  See i18n in action with the navigation
+</Card>
+
+<Card title="Pages Guide" icon="file" href="/guides/pages">
+  Creating new multi-language pages
+</Card>
+
+</CardGroup>

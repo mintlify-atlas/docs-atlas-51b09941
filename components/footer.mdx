@@ -1,0 +1,350 @@
+---
+title: Footer Component
+description: Site footer with navigation links, contact information, and branding
+---
+
+## Overview
+
+The Footer component provides a rich, visually striking footer with navigation links, contact information, social media, and a large branded text overlay. It features a dark wood-textured background theme.
+
+## Location
+
+```
+src/components/Footer.astro
+```
+
+## Usage
+
+```astro
+---
+import Footer from '../components/Footer.astro';
+---
+
+<Footer />
+```
+
+The footer automatically uses the current language context from the URL.
+
+## Structure
+
+```astro title="src/components/Footer.astro"
+<footer class="footer">
+  <div class="footer-container">
+    {/* Top separator line */}
+    <div class="footer-separator"></div>
+
+    <div class="footer-content">
+      {/* Left Column: Links */}
+      <div class="footer-block links-block">
+        <nav class="footer-nav">
+          <ul class="nav-list">
+            <li><a href={translatePath("/")}>{t("nav.home")}</a></li>
+            <li><a href={translatePath("/propiedades")}>{t("nav.properties")}</a></li>
+            <li><a href={translatePath("/mision")}>{t("nav.mission")}</a></li>
+            <li><a href={translatePath("/contacto")}>{t("nav.contact")}</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      {/* Right Column: Contact & Social */}
+      <div class="footer-block contact-block">
+        <a href="https://www.instagram.com/adosa_real_estate" target="_blank" class="social-icon">
+          {/* Instagram icon */}
+        </a>
+        <a href="mailto:info@grupoadosa.com" class="contact-email">
+          info@grupoadosa.com
+        </a>
+      </div>
+    </div>
+
+    {/* Huge Text Overlay */}
+    <div class="huge-text-wrapper">
+      <span class="huge-text">ADOSA</span>
+    </div>
+
+    {/* Bottom Bar */}
+    <div class="footer-bottom">
+      <div class="bottom-links">
+        <a href={translatePath("/politica-privacidad")}>{t("footer.privacy")}</a>
+        <a href={translatePath("/politica-cookies")}>{t("footer.cookies")}</a>
+      </div>
+      <div class="copyright">
+        &copy; {currentYear} Adosa. {t("footer.rights")}
+      </div>
+      <div class="site-by">
+        Site by <a href="https://extrudev.com" target="_blank">EXTRUDEV</a>
+      </div>
+    </div>
+  </div>
+</footer>
+```
+
+## Sections
+
+### Links Block (Left)
+
+Two-column grid of navigation links:
+
+<ParamField path="nav-list" type="grid">
+  Uses CSS Grid with `grid-template-columns: 1fr 1fr` for balanced layout
+</ParamField>
+
+```css
+.nav-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 4rem;
+}
+
+.nav-list a {
+  color: #e8e6e1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+```
+
+### Contact Block (Right)
+
+Social media and email contact:
+
+<ParamField path="contact-email" type="element">
+  Large 3rem font size for prominent email display
+</ParamField>
+
+```astro
+<div class="footer-block contact-block">
+  <a href="https://www.instagram.com/adosa_real_estate" target="_blank" class="social-icon">
+    <svg><!-- Instagram icon --></svg>
+  </a>
+  <a href="mailto:info@grupoadosa.com" class="contact-email">
+    info@grupoadosa.com
+  </a>
+</div>
+```
+
+### Huge Text Overlay
+
+Massive "ADOSA" text with outlined styling:
+
+```css
+.huge-text {
+  font-size: 25vw; /* Responsive to viewport */
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.5);
+  mix-blend-mode: overlay;
+  opacity: 0.3;
+}
+```
+
+<Note>
+  The huge text uses `mix-blend-mode: overlay` and cut-off bottom margin to create a partial reveal effect.
+</Note>
+
+### Bottom Bar
+
+Three-column layout with legal links, copyright, and credits:
+
+```astro
+<div class="footer-bottom">
+  <div class="bottom-links">
+    <a href="/politica-privacidad">Privacy Policy</a>
+    <a href="/politica-cookies">Cookie Policy</a>
+  </div>
+  <div class="copyright">
+    © 2026 Adosa. All rights reserved.
+  </div>
+  <div class="site-by">
+    Site by <a href="https://extrudev.com">EXTRUDEV</a>
+  </div>
+</div>
+```
+
+## Styling
+
+### Background Texture
+
+Dark wood theme with radial gradient overlay:
+
+```css
+.footer {
+  background-color: #2a1b15; /* Dark brown fallback */
+  color: #e8e6e1;
+  padding: 4rem 2rem 1rem;
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle at 70% 30%,
+    rgba(60, 40, 30, 0.8),
+    rgba(20, 10, 5, 0.95)
+  );
+}
+```
+
+<Tip>
+  You can add a wood texture image by uncommenting the `background-image` property in the CSS.
+</Tip>
+
+### Layout
+
+<ParamField path="max-width" type="string" default="1800px">
+  Maximum width of footer content container
+</ParamField>
+
+<ParamField path="min-height" type="string" default="50vh">
+  Minimum footer height for visual impact
+</ParamField>
+
+```css
+.footer-container {
+  max-width: 1800px;
+  margin: 0 auto;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+```
+
+## Responsive Design
+
+### Mobile Layout
+
+```css
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .nav-list {
+    grid-template-columns: 1fr; /* Single column */
+  }
+
+  .contact-block {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .contact-email {
+    font-size: 1.8rem; /* Smaller on mobile */
+    word-break: break-all;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .huge-text {
+    font-size: 35vw; /* Larger relative to screen */
+  }
+}
+```
+
+## Customization
+
+### Adding Social Media Icons
+
+Add more social icons to the contact block:
+
+```astro
+<div class="contact-block">
+  <div class="social-icons">
+    <a href="https://instagram.com/..." class="social-icon">
+      <svg><!-- Instagram --></svg>
+    </a>
+    <a href="https://facebook.com/..." class="social-icon">
+      <svg><!-- Facebook --></svg>
+    </a>
+    <a href="https://linkedin.com/..." class="social-icon">
+      <svg><!-- LinkedIn --></svg>
+    </a>
+  </div>
+  <a href="mailto:..." class="contact-email">...</a>
+</div>
+```
+
+### Changing Footer Links
+
+Modify the navigation list:
+
+```astro
+<ul class="nav-list">
+  <li><a href="/new-page">New Page</a></li>
+  <li><a href="/another-page">Another Page</a></li>
+  <!-- Add more links -->
+</ul>
+```
+
+### Customizing Colors
+
+```css
+.footer {
+  background-color: #your-color; /* Change base color */
+  color: #your-text-color;
+}
+
+.footer::before {
+  background: radial-gradient(
+    /* Customize gradient */
+  );
+}
+
+.contact-email {
+  color: #your-accent-color;
+}
+```
+
+### Changing the Huge Text
+
+```astro
+<div class="huge-text-wrapper">
+  <span class="huge-text">YOUR BRAND</span>
+</div>
+```
+
+## Translation Keys
+
+The footer uses the following translation keys:
+
+<CodeGroup>
+```json title="es.json"
+{
+  "footer": {
+    "privacy": "Política de Privacidad",
+    "cookies": "Política de Cookies",
+    "rights": "Todos los derechos reservados"
+  }
+}
+```
+
+```json title="en.json"
+{
+  "footer": {
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "rights": "All rights reserved"
+  }
+}
+```
+</CodeGroup>
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="Navigation" icon="compass" href="/components/navigation">
+    Header navigation component
+  </Card>
+  
+  <Card title="Internationalization" icon="globe" href="/concepts/internationalization">
+    Translation utilities
+  </Card>
+</CardGroup>

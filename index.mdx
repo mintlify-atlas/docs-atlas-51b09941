@@ -1,97 +1,135 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: Introduction
+description: Welcome to Adosa Real Estate - A premium Astro-based website for luxury real estate listings
 ---
 
-## Setting up
+## Welcome to Adosa Real Estate
 
-Get your documentation site up and running in minutes.
+Adosa Real Estate is a premium, luxury-focused real estate website built with cutting-edge web technologies. This documentation will help you understand, customize, and extend the platform.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in minutes with our quickstart guide
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Components" icon="puzzle-piece" href="/components/overview">
+    Explore the reusable UI components
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="API Integration" icon="plug" href="/api/ego-real-estate">
+    Learn about the eGO Real Estate API integration
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Deployment" icon="cloud-arrow-up" href="/deployment/build-process">
+    Deploy your site to production
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What is Adosa Real Estate?
 
-Everything you need to create world-class documentation.
+Adosa is a modern, static website built specifically for luxury real estate showcasing. The platform emphasizes visual impact, smooth animations, and an exceptional user experience that matches the premium nature of the properties being displayed.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+### Key Features
 
-## Need inspiration?
+<CardGroup cols={2}>
+  <Card title="Astro 5 Static Generation" icon="meteor">
+    Built on Astro 5 for optimal performance and SEO
+  </Card>
+  <Card title="Premium Animations" icon="wand-magic-sparkles">
+    GSAP animations with ScrollTrigger and Lenis smooth scrolling
+  </Card>
+  <Card title="Multi-language Support" icon="language">
+    Bilingual support (Spanish/English) with i18n routing
+  </Card>
+  <Card title="API Integration" icon="database">
+    Real-time property data from eGO Real Estate CRM
+  </Card>
+  <Card title="Interactive Maps" icon="map-location-dot">
+    Leaflet maps for property locations
+  </Card>
+  <Card title="Responsive Design" icon="mobile-screen">
+    Premium minimalist aesthetic across all devices
+  </Card>
+  <Card title="Automated Deployment" icon="gears">
+    GitHub Actions for continuous deployment
+  </Card>
+  <Card title="Lead Management" icon="envelope">
+    Contact forms with PHP proxy backend
+  </Card>
+</CardGroup>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+## Technology Stack
+
+The Adosa Real Estate platform is built with a carefully selected technology stack designed for performance, developer experience, and visual excellence:
+
+- **Core Framework**: [Astro 5](https://astro.build) for static site generation
+- **Styling**: Vanilla CSS with CSS Variables for theming
+- **Animations**: [GSAP](https://greensock.com) with Power3 easing and ScrollTrigger
+- **Smooth Scroll**: [Lenis](https://github.com/darkroomengineering/lenis) for premium scroll experience
+- **Maps**: [Leaflet](https://leafletjs.com) for interactive property locations
+- **Type Safety**: TypeScript for robust code
+- **Backend Integration**: eGO Real Estate API with PHP proxy
+
+## Project Philosophy
+
+The Adosa Real Estate website prioritizes:
+
+1. **Visual Impact**: Every element is designed to impress and convey luxury
+2. **Performance**: Static generation ensures fast load times and excellent SEO
+3. **User Experience**: Smooth animations and intuitive navigation
+4. **Maintainability**: Clean code structure with reusable components
+5. **Scalability**: Easy to add new properties and features
+
+## Architecture Overview
+
+```
+src/
+├── components/       # Reusable UI components
+├── layouts/          # Page layout templates
+├── pages/            # Route definitions with i18n support
+├── styles/           # Global CSS, theme, and animations
+├── utils/            # Helper functions and animation utilities
+├── data/             # Property data types and interfaces
+├── services/         # API integration services
+└── i18n/             # Internationalization utilities
+```
+
+<Note>
+All source code is available in the `~/workspace/source/` directory. The project follows Astro's file-based routing conventions.
+</Note>
+
+## Design Principles
+
+The Adosa website follows these core design principles:
+
+- **Minimalism**: Clean, uncluttered layouts that let properties shine
+- **Premium Feel**: Sophisticated typography, subtle animations, smooth transitions
+- **Dark Theme**: Elegant dark backgrounds with gold accents
+- **Fluid Typography**: `clamp()` based responsive text sizing
+- **Consistent Spacing**: Standardized padding and margins via CSS utilities
+
+## Next Steps
+
+<Steps>
+  <Step title="Install Dependencies">
+    Follow the [installation guide](/installation) to set up your development environment
+  </Step>
+  <Step title="Run Locally">
+    Start the development server and explore the codebase
+  </Step>
+  <Step title="Understand Core Concepts">
+    Learn about [architecture](/concepts/architecture), [design system](/concepts/design-system), and [i18n](/concepts/internationalization)
+  </Step>
+  <Step title="Explore Components">
+    Review the [component library](/components/overview) to understand available UI elements
+  </Step>
+</Steps>
+
+## Getting Help
+
+If you need assistance:
+
+- Check the [API Reference](/reference/property-interface) for technical details
+- Review [guides](/guides/local-development) for common development tasks
+- Explore [deployment documentation](/deployment/build-process) for production setup
+
+<Info>
+This documentation covers both usage and development of the Adosa Real Estate platform. Navigate using the sidebar to find specific topics.
+</Info>

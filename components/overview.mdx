@@ -1,0 +1,161 @@
+---
+title: Components Overview
+description: Overview of all Astro components available in the Adosa Real Estate website
+---
+
+## Component Organization
+
+The Adosa Real Estate website is built with reusable Astro components organized into two main categories:
+
+### Core Components
+
+Core layout and navigation components located in `src/components/`:
+
+- **Navigation** - Fixed header with language switcher and mobile menu
+- **Footer** - Site footer with links and contact information
+- **Loader** - Initial page loading animation
+- **GlobalBackground** - Background styling wrapper
+- **ScrollGallery** - Image gallery with scroll effects
+- **ShareButtons** - Social media sharing buttons
+- **EmptySection** - Placeholder section component
+
+### Property Components
+
+Specialized components for property listings and details located in `src/components/properties/`:
+
+- **PropertyGrid** - Property listing grid with filters and sorting
+- **PropertyDesktop** - Desktop property detail view with zipper layout
+- **PropertyMobile** - Mobile property detail view with drawer
+- **PropertyMap** - Interactive Leaflet map component
+- **ContactProperty** - Property contact form
+- **FloatingContactBtn** - Floating contact button (desktop only)
+- **PropertyPrint** - Print-friendly property view
+
+## Importing Components
+
+All components are Astro components (`.astro` files) and can be imported using standard ES module syntax:
+
+```astro
+---
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import PropertyGrid from '../components/properties/PropertyGrid.astro';
+---
+
+<Navigation />
+<main>
+  <PropertyGrid lang="es" />
+</main>
+<Footer />
+```
+
+## Component Props
+
+Most components accept props for customization. Common patterns:
+
+<Tabs>
+  <Tab title="Language Support">
+    ```astro
+    ---
+    // Components with language support
+    import { getLangFromUrl } from '../i18n/utils';
+    const lang = getLangFromUrl(Astro.url);
+    ---
+    
+    <Navigation lang={lang} />
+    <PropertyGrid lang={lang} />
+    ```
+  </Tab>
+  
+  <Tab title="Property Data">
+    ```astro
+    ---
+    import PropertyDesktop from '../components/properties/PropertyDesktop.astro';
+    import { PropertyService } from '../services/api/properties';
+    
+    const property = await PropertyService.getById(Astro.params.id, 'es-ES');
+    ---
+    
+    <PropertyDesktop property={property} lang="es" />
+    ```
+  </Tab>
+</Tabs>
+
+## Styling Approach
+
+Components use scoped styles with CSS custom properties:
+
+```astro
+<style>
+  .component {
+    font-family: var(--font-heading);
+    color: var(--color-4);
+    background: var(--color-1);
+  }
+</style>
+```
+
+### Design Tokens
+
+- `--font-heading` - Heading font (titles, navigation)
+- `--font-body` - Body text font
+- `--color-1` - Primary background (beige/cream)
+- `--color-2` - Secondary color
+- `--color-3` - Accent color (gold)
+- `--color-4` - Text color (dark)
+- `--height-nav` - Navigation height (90px)
+- `--spacing-container` - Container padding
+
+## Interactive Features
+
+Many components include client-side interactivity:
+
+- **GSAP animations** - Smooth scroll and entrance animations
+- **Leaflet maps** - Interactive property location maps
+- **Custom dropdowns** - Styled select components with glassmorphism
+- **Form handling** - Contact form submission with validation
+- **Responsive behavior** - Mobile-first design with breakpoints
+
+## Responsive Design
+
+Components are designed mobile-first with responsive breakpoints:
+
+```css
+/* Desktop styles default */
+.component {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+}
+
+/* Mobile styles */
+@media (max-width: 900px) {
+  .component {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+Common breakpoints:
+- `768px` - Tablet/mobile transition
+- `900px` - Desktop features
+- `1023px` - Navigation mobile menu
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Navigation Component" icon="compass" href="/components/navigation">
+    Learn about the header navigation and language switcher
+  </Card>
+  
+  <Card title="Property Components" icon="house" href="/components/property-components">
+    Explore property listing and detail components
+  </Card>
+  
+  <Card title="Footer Component" icon="rectangle-terminal" href="/components/footer">
+    Customize the site footer
+  </Card>
+  
+  <Card title="Loader Component" icon="loader" href="/components/loader">
+    Configure the loading animation
+  </Card>
+</CardGroup>

@@ -1,0 +1,320 @@
+---
+title: 'SFTP Deployment'
+description: 'Deploying the website to cdmon hosting via SFTP protocol'
+---
+
+The Adosa Real Estate website is deployed to cdmon shared hosting using SFTP (SSH File Transfer Protocol) for secure file synchronization.
+
+## Hosting Environment
+
+- **Provider**: cdmon
+- **Server Type**: Shared hosting with PHP support
+- **Protocol**: SFTP on port 22
+- **Target Directory**: `/web`
+- **Domain**: Configured through cdmon control panel
+
+## Automated SFTP Deployment
+
+The primary deployment method is automated via GitHub Actions using the `appleboy/scp-action` tool.
+
+### Deployment Configuration
+
+```yaml
+uses: appleboy/scp-action@v0.1.7
+with:
+  host: ${{ secrets.SFTP_HOST }}
+  username: ${{ secrets.SFTP_USER }}
+  password: ${{ secrets.SFTP_PWD }}
+  port: 22
+  source: "dist/*"
+  target: "/web"
+  strip_components: 1
+  overwrite: true
+```
+
+### How It Works
+
+1. **Source**: All files from the `dist/` folder (built by Astro)
+2. **Target**: Uploaded to `/web` directory on cdmon server
+3. **Strip components**: Removes the `dist/` prefix, so `dist/index.html` becomes `/web/index.html`
+4. **Overwrite**: Replaces existing files with new versions
+
+## Sync Process
+
+The SFTP deployment synchronizes the entire `dist/` folder:
+
+```
+Local (GitHub Actions)          Remote (cdmon)
+dist/index.html          →      /web/index.html
+dist/_astro/styles.css   →      /web/_astro/styles.css
+dist/api/proxy.php       →      /web/api/proxy.php
+dist/propiedades/        →      /web/propiedades/
+```
+
+### What Gets Deployed
+
+- ✅ Static HTML pages
+- ✅ CSS and JavaScript assets in `_astro/` folder
+- ✅ PHP API proxy (`/api/proxy.php`)
+- ✅ Public assets (images, fonts, favicon)
+- ✅ All subdirectories and routes
+
+### What Doesn't Get Deployed
+
+- ❌ Source code (`src/` folder)
+- ❌ Node modules
+- ❌ Development configuration files
+- ❌ `.git` repository data
+
+## Manual SFTP Deployment
+
+For emergency deployments or testing, you can deploy manually using SFTP clients.
+
+### Using FileZilla
+
+1. **Download FileZilla** from [filezilla-project.org](https://filezilla-project.org/)
+2. **Connect to server**:
+   - Protocol: SFTP
+   - Host: Your cdmon SFTP hostname
+   - Port: 22
+   - Username: Your SFTP username
+   - Password: Your SFTP password
+3. **Navigate** to `/web` on the remote side
+4. **Build locally**: Run `npm run build`
+5. **Upload**: Drag contents of `dist/` folder to `/web/`
+6. **Verify**: Check the website is working correctly
+
+### Using Command Line (sftp)
+
+```bash
+# Build the site
+npm run build
+
+# Connect via SFTP
+sftp username@hostname
+
+# Navigate to web directory
+cd /web
+
+# Upload dist contents
+put -r dist/*
+
+# Exit
+bye
+```
+
+### Using rsync over SSH
+
+For more efficient uploads (only changed files):
+
+```bash
+rsync -avz --delete \
+  -e "ssh -p 22" \
+  dist/ \
+  username@hostname:/web/
+```
+
+The `--delete` flag removes files on the server that no longer exist locally.
+
+## Backup Protocol
+
+As documented in `handoff1.3.md:38`, the development team maintains manual backups of stable releases.
+
+### Backup Procedure
+
+1. **Build stable version**:
+   ```bash
+   npm run build
+   ```
+
+2. **Copy to backup folder**:
+   ```bash
+   cp -r dist/ backup/
+   ```
+
+3. **Archive with timestamp**:
+   ```bash
+   tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz backup/
+   ```
+
+4. **Store in backup repository**: Developer uploads to separate backup Git repository
+
+### Why Maintain Backups
+
+- **Rapid rollback** if automated deployment fails
+- **Known-good states** for stable releases
+- **External API protection** in case eGO API is temporarily unavailable
+- **Disaster recovery** if cdmon hosting has issues
+
+## Rollback Procedures
+
+If a deployment introduces issues, you can rollback to the previous version.
+
+### Automatic Rollback Protection
+
+The GitHub Actions workflow includes built-in validation (`.github/workflows/deploy.yml:32`) that prevents deploying broken builds:
+
+```bash
+if grep -q "property-card" dist/propiedades/index.html; then
+  echo "✅ Build valid"
+else
+  echo "⛔ Build invalid - aborting deploy"
+  exit 1
+fi
+```
+
+This stops bad deployments before they reach production.
+
+### Manual Rollback Steps
+
+If a bad deployment makes it to production:
+
+1. **Retrieve backup**:
+   ```bash
+   # From backup repository
+   git clone <backup-repo-url>
+   cd backups
+   tar -xzf backup-<timestamp>.tar.gz
+   ```
+
+2. **Connect via SFTP**:
+   ```bash
+   sftp username@hostname
+   cd /web
+   ```
+
+3. **Upload backup**:
+   ```bash
+   put -r backup/*
+   ```
+
+4. **Verify site is restored**
+
+### Rollback Using Git
+
+If the issue is code-related:
+
+1. **Revert the commit**:
+   ```bash
+   git revert <bad-commit-hash>
+   git push origin main
+   ```
+
+2. **Wait for automatic deployment** (or trigger manually)
+
+3. **Monitor GitHub Actions** to ensure successful deployment
+
+## Deployment Verification
+
+After any deployment (automated or manual), verify:
+
+### 1. Homepage Loads
+
+Visit the main domain and check:
+- ✅ Page renders correctly
+- ✅ Styles are applied
+- ✅ Images load
+- ✅ JavaScript animations work
+
+### 2. Properties Page
+
+Visit `/propiedades` and verify:
+- ✅ Property cards are displayed
+- ✅ Property data is current
+- ✅ Images load for each property
+- ✅ Filtering and search work (if applicable)
+
+### 3. PHP Proxy Works
+
+Test the API proxy at `/api/proxy.php`:
+
+```bash
+curl "https://yourdomain.com/api/proxy.php?type=Properties"
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "ego_code": 200,
+  "ego_response": { ... }
+}
+```
+
+### 4. Console Errors
+
+Open browser DevTools and check for:
+- ❌ 404 errors for missing assets
+- ❌ JavaScript errors
+- ❌ CORS errors
+
+## Deployment Troubleshooting
+
+### SFTP Permission Denied
+
+**Error**: "Permission denied" when uploading
+
+**Cause**: Incorrect SFTP credentials or insufficient permissions
+
+**Solution**:
+1. Verify username and password
+2. Check cdmon control panel for SFTP access settings
+3. Ensure `/web` directory is writable
+
+### PHP Files Not Executing
+
+**Issue**: `proxy.php` downloads instead of executing
+
+**Cause**: cdmon server not recognizing PHP files
+
+**Solution**:
+1. Verify file has `.php` extension (not `.php.txt`)
+2. Check cdmon PHP version is enabled for the domain
+3. Review `.htaccess` if present
+
+### Missing Files After Deployment
+
+**Issue**: Some files present in `dist/` not on server
+
+**Cause**: SFTP upload incomplete or selective sync
+
+**Solution**:
+1. Use `overwrite: true` in SCP action (already configured)
+2. Manually upload missing files via FileZilla
+3. Check GitHub Actions logs for upload errors
+
+### Old Files Persisting
+
+**Issue**: Deleted files still appear on production
+
+**Cause**: SFTP only uploads/overwrites, doesn't delete
+
+**Solution**:
+1. Manually delete old files via SFTP client
+2. For automated cleanup, consider using rsync with `--delete` flag instead of `appleboy/scp-action`
+
+## Performance Considerations
+
+### Upload Time
+
+Typical SFTP upload duration:
+- **Fresh upload**: 60-90 seconds
+- **Incremental**: N/A (SCP uploads all files)
+- **Factors**: File count, total size, network speed
+
+### Optimizing Uploads
+
+To speed up deployments:
+
+1. **Compress assets** - Already done via `compressHTML: true` in `astro.config.mjs:10`
+2. **Reduce file count** - Astro bundles CSS/JS automatically
+3. **Use CDN** - Consider offloading static assets to CDN (future enhancement)
+
+## Security Best Practices
+
+- ✅ **Use SFTP** (port 22) instead of FTP (port 21) for encryption
+- ✅ **Store credentials in GitHub Secrets** - Never commit to repository
+- ✅ **Rotate passwords** regularly in cdmon control panel
+- ✅ **Limit access** - Only grant SFTP access to necessary team members
+- ❌ **Don't use root** - Use dedicated SFTP user for deployment
+- ❌ **Don't commit `.env`** - Keep API tokens out of version control

@@ -1,80 +1,347 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get your Adosa Real Estate site running in minutes
+icon: rocket
 ---
 
-## Get started in three steps
+## Getting Started
 
-Get your documentation site running locally and make your first customization.
+This guide will help you get the Adosa Real Estate website up and running locally, and make your first customization.
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Start the Development Server">
+    Launch the local development server using your preferred package manager:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    <CodeGroup>
+      ```bash npm
+      npm run dev
+      ```
 
-### Step 2: Deploy your changes
+      ```bash pnpm
+      pnpm dev
+      ```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+      ```bash yarn
+      yarn dev
+      ```
+    </CodeGroup>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    You should see output similar to:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    🚀 astro v5.16.5 started in 123ms
 
-### Step 3: Go live
+      ┃ Local    http://localhost:4321/
+      ┃ Network  use --host to expose
+    ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    <Info>
+    The development server runs on **port 4321** by default. Your site will be available at `http://localhost:4321`.
+    </Info>
+  </Step>
 
-## Next steps
+  <Step title="Open Your Browser">
+    Navigate to `http://localhost:4321` in your web browser. You should see the Adosa Real Estate homepage with:
 
-Now that you have your docs running, explore these key features:
+    - A video hero section with beach footage
+    - Navigation menu at the top
+    - Smooth scroll animations (on desktop)
+    - Team member profiles
+    - Properties section
+
+    <Note>
+    The site supports both Spanish (`/`) and English (`/en`) routes. The default language is Spanish.
+    </Note>
+  </Step>
+
+  <Step title="Explore the Site">
+    Try navigating through different sections:
+
+    - **Home**: Main landing page with company overview
+    - **Properties**: Browse available real estate listings at `/propiedades` (ES) or `/en/propiedades` (EN)
+    - **Contact**: Team information and contact details
+
+    <Tip>
+    The site features smooth scrolling animations powered by GSAP and Lenis. These are only active on desktop (>1024px width) for optimal performance.
+    </Tip>
+  </Step>
+</Steps>
+
+## Your First Customization
+
+Let's make a simple change to the theme colors to see how easy it is to customize the site.
+
+<Steps>
+  <Step title="Open the Theme File">
+    Navigate to and open the theme configuration file:
+
+    ```bash
+    src/styles/theme.css
+    ```
+  </Step>
+
+  <Step title="Modify the Color Scheme">
+    The Adosa brand uses a premium color palette defined in CSS custom properties. Let's change the accent color:
+
+    **Original colors:**
+    ```css src/styles/theme.css
+    :root {
+        /* Color 4: Main Text (Dark Gray Ochre) */
+        --color-4: #53534B;
+        
+        /* Color 3: Accent (Golden/Ochre) */
+        --color-3: #D7AE56;
+        
+        /* Color 2: Secondary (Medium Gray) */
+        --color-2: #AEADA5;
+        
+        /* Color 1: Background (Light Beige) */
+        --color-1: #F2F1EB;
+    }
+    ```
+
+    Try changing the accent color (`--color-3`) to a different shade:
+
+    ```css src/styles/theme.css
+    :root {
+        /* Change the golden accent to a warmer tone */
+        --color-3: #C9A04F;
+    }
+    ```
+  </Step>
+
+  <Step title="See the Changes">
+    Save the file and check your browser. Astro's hot module replacement (HMR) will automatically reload the page with your new color scheme.
+
+    The accent color (`--color-3`) is used throughout the site for:
+    - Hover states on navigation links
+    - Team member role labels
+    - Interactive elements
+
+    <Info>
+    Changes to CSS files trigger instant updates without a full page reload, making styling iterations very fast.
+    </Info>
+  </Step>
+</Steps>
+
+## Customize the Hero Section
+
+Let's make a more substantial change by customizing the hero section text.
+
+<Steps>
+  <Step title="Open the Home Page">
+    The home page is located at:
+
+    ```bash
+    src/pages/[...lang]/index.astro
+    ```
+  </Step>
+
+  <Step title="Update the Hero Text">
+    Find the hero title and subtitle around line 18-23:
+
+    ```astro src/pages/[...lang]/index.astro
+    // Current text
+    const HERO_TITLE = isEn
+      ? "Your real estate agency in San Pedro Alcántara and Marbella"
+      : "Tu inmobiliaria en San Pedro Alcántara y Marbella";
+    const HERO_SUBTITLE = isEn
+      ? "20 years creating real estate value on La Costa del Sol"
+      : "20 años creando valor inmobilrio en La Costa del Sol";
+    ```
+
+    Change it to something more specific:
+
+    ```astro src/pages/[...lang]/index.astro
+    const HERO_TITLE = isEn
+      ? "Luxury Real Estate in Marbella"
+      : "Inmuebles de Lujo en Marbella";
+    const HERO_SUBTITLE = isEn
+      ? "Exclusive properties on the Costa del Sol since 2005"
+      : "Propiedades exclusivas en la Costa del Sol desde 2005";
+    ```
+  </Step>
+
+  <Step title="View Your Changes">
+    Save the file and refresh your browser. You'll see the new hero text with the smooth reveal animation.
+
+    <Tip>
+    Notice how the site handles both Spanish and English translations using the `isEn` variable. This pattern is used throughout the codebase.
+    </Tip>
+  </Step>
+</Steps>
+
+## Understanding the Tech Stack
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Astro Framework" icon="rocket">
+    Modern static site generator with optimal performance and zero JS by default
+  </Card>
+  
+  <Card title="GSAP Animations" icon="wand-magic-sparkles">
+    Professional-grade animations with ScrollTrigger for scroll-based effects
+  </Card>
+  
+  <Card title="Lenis Smooth Scroll" icon="computer-mouse">
+    Premium smooth scrolling experience (desktop only)
+  </Card>
+  
+  <Card title="TypeScript" icon="code">
+    Type-safe development with full IDE support
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Available Commands
+
+Here are all the commands you can run from the project root:
+
+| Command | Action |
+| :--- | :--- |
+| `npm run dev` | Starts development server at `localhost:4321` |
+| `npm run build` | Builds production site to `./dist/` |
+| `npm run preview` | Previews your build locally before deploying |
+| `npm run astro` | Run Astro CLI commands |
+| `npm run astro -- --help` | Get help using the Astro CLI |
+
+<Info>
+The project uses **Astro 5** with the strict TypeScript configuration. Type checking is performed automatically during builds.
+</Info>
+
+## Common Development Tasks
+
+### Adding a New Page
+
+Pages are automatically routed based on their file location in `src/pages/[...lang]/`:
+
+```bash
+# Create a new page
+src/pages/[...lang]/about.astro  → /about (ES), /en/about (EN)
+```
+
+### Working with Components
+
+Reusable components are in `src/components/`. For example, the Navigation component:
+
+```astro src/components/Navigation.astro
+---
+import Navigation from "../../components/Navigation.astro";
+---
+
+<Navigation />
+```
+
+### Modifying Styles
+
+Global styles are organized in `src/styles/`:
+
+- `theme.css` - Color palette and typography variables
+- `global.css` - Base styles and resets
+- `animations.css` - Animation keyframes and utilities
+
+<Warning>
+The project uses CSS custom properties extensively. Always modify colors through the theme variables in `theme.css` rather than hardcoding values.
+</Warning>
+
+## Performance Features
+
+<AccordionGroup>
+  <Accordion title="Smooth Scrolling">
+    Lenis smooth scroll is only enabled on desktop (>1024px) to preserve native touch scrolling performance on mobile devices.
+
+    ```javascript src/layouts/BaseLayout.astro
+    const isDesktop = window.matchMedia("(min-width: 1025px)").matches;
+    if (isDesktop) {
+      const lenis = new Lenis({ /* config */ });
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Animation System">
+    GSAP ScrollTrigger animations are conditionally applied based on viewport size using `matchMedia`:
+
+    ```javascript
+    const mm = gsap.matchMedia();
+    mm.add("(min-width: 769px)", () => {
+      // Desktop-only animations
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Image Optimization">
+    Static assets in `public/` are served directly. Consider using Astro's Image component for automatic optimization:
+
+    ```astro
+    import { Image } from 'astro:assets';
+    ```
+  </Accordion>
+
+  <Accordion title="Page Transitions">
+    Custom fade transitions between pages using a white overlay animation (600ms duration).
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port 4321 already in use">
+    If you see an error about the port being in use:
+
+    ```bash
+    # Use a different port
+    npm run dev -- --port 3000
+    ```
+  </Accordion>
+
+  <Accordion title="GSAP animations not working">
+    GSAP must be processed during SSR. Verify your `astro.config.mjs` includes:
+
+    ```javascript
+    vite: {
+      ssr: {
+        noExternal: ['gsap'],
+      },
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="TypeScript errors">
+    Run type checking manually:
+
+    ```bash
+    npm run astro check
+    ```
+  </Accordion>
+
+  <Accordion title="Styles not updating">
+    Clear Astro's cache:
+
+    ```bash
+    rm -rf .astro
+    npm run dev
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="puzzle-piece" href="/components/overview">
+    Explore the available UI components
+  </Card>
+  
+  <Card title="Theme Configuration" icon="palette" href="/styling/theme">
+    Deep dive into customizing the theme
+  </Card>
+  
+  <Card title="Internationalization" icon="language" href="/concepts/internationalization">
+    Learn about the Spanish/English translation system
+  </Card>
+  
+  <Card title="Deployment" icon="cloud" href="/deployment/build-process">
+    Deploy your site to production
+  </Card>
+</CardGroup>
+
+<Tip>
+Join the Astro community on [Discord](https://astro.build/chat) for help and to share your customizations!
+</Tip>

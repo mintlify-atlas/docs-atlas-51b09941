@@ -1,0 +1,633 @@
+---
+title: Property Components
+description: Components for displaying property listings and details
+---
+
+## Overview
+
+The property components provide a complete system for displaying real estate listings, including grid views, detailed property pages (desktop and mobile), maps, and contact forms.
+
+## Component List
+
+<CardGroup cols={2}>
+  <Card title="PropertyGrid" icon="grid" href="#propertygrid">
+    Filterable property listing grid
+  </Card>
+  
+  <Card title="PropertyDesktop" icon="desktop" href="#propertydesktop">
+    Desktop property detail view with zipper layout
+  </Card>
+  
+  <Card title="PropertyMobile" icon="mobile" href="#propertymobile">
+    Mobile property detail view with drawer
+  </Card>
+  
+  <Card title="PropertyMap" icon="map" href="#propertymap">
+    Interactive Leaflet map component
+  </Card>
+  
+  <Card title="ContactProperty" icon="envelope" href="#contactproperty">
+    Property inquiry contact form
+  </Card>
+  
+  <Card title="FloatingContactBtn" icon="circle-dot" href="#floatingcontactbtn">
+    Floating contact button (desktop)
+  </Card>
+</CardGroup>
+
+---
+
+## PropertyGrid
+
+Displays a filterable, sortable grid of property listings with sidebar filters.
+
+### Location
+
+```
+src/components/properties/PropertyGrid.astro
+```
+
+### Usage
+
+```astro
+---
+import PropertyGrid from '../components/properties/PropertyGrid.astro';
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+---
+
+<PropertyGrid lang={lang} />
+```
+
+### Props
+
+<ParamField path="lang" type="string" default="es">
+  Language code for translations (`es` or `en`)
+</ParamField>
+
+### Features
+
+**Filtering System:**
+- Location (Málaga, Marbella, Estepona, Benahavis, San Pedro)
+- Property type (Apartment, House, Attic, Plot, Commercial)
+- Minimum bedrooms (+1, +2, +3)
+- Minimum bathrooms (+1, +2, +3)
+
+**Sorting Options:**
+- Price: High to Low / Low to High
+- Size: Large to Small / Small to Large
+
+**Layout:**
+- Sidebar filters (sticky on desktop)
+- 2-column grid on desktop, 1-column on mobile
+- Featured property cards with special styling
+- Pagination dots for visual feedback
+
+### Data Structure
+
+```typescript
+const PROPERTIES = await PropertyService.getAll(isEn ? 'en-GB' : 'es-ES');
+```
+
+Each property card includes:
+
+```astro
+<a
+  class="property-link"
+  href={translatePath(`/propiedades/${normalizeSlug(prop.type)}-${normalizeSlug(prop.location)}/${prop.id}`)}
+  data-location={prop.filterLocation || prop.location}
+  data-type={prop.type}
+  data-beds={prop.bedrooms}
+  data-baths={prop.bathrooms}
+  data-price-raw={prop.price_long}
+  data-size-raw={prop.size}
+>
+  <!-- Card content -->
+</a>
+```
+
+### JavaScript Filtering
+
+```javascript
+let filters = {
+  location: 'all',
+  type: 'all',
+  beds: 'any',
+  baths: 'any',
+  sort: 'none'
+};
+
+function updateGrid() {
+  cards.forEach((card) => {
+    const loc = card.getAttribute('data-location');
+    const type = card.getAttribute('data-type');
+    const beds = parseInt(card.getAttribute('data-beds'));
+    const baths = parseInt(card.getAttribute('data-baths'));
+    
+    let visible = true;
+    
+    // Apply filters
+    if (filters.location !== 'all' && loc !== filters.location) visible = false;
+    if (filters.type !== 'all' && type !== filters.type) visible = false;
+    if (filters.beds !== 'any' && beds < parseInt(filters.beds)) visible = false;
+    if (filters.baths !== 'any' && baths < parseInt(filters.baths)) visible = false;
+    
+    card.classList.toggle('hidden', !visible);
+  });
+  
+  sortGrid();
+}
+```
+
+---
+
+## PropertyDesktop
+
+Desktop-optimized property detail view using a "zipper" layout where images and content alternate.
+
+### Location
+
+```
+src/components/properties/PropertyDesktop.astro
+```
+
+### Usage
+
+```astro
+---
+import PropertyDesktop from '../components/properties/PropertyDesktop.astro';
+import { PropertyService } from '../services/api/properties';
+
+const property = await PropertyService.getById(Astro.params.id, 'es-ES');
+---
+
+<PropertyDesktop property={property} lang="es" />
+```
+
+### Props
+
+<ParamField path="property" type="Property" required>
+  Property data object from API
+</ParamField>
+
+<ParamField path="lang" type="string" default="es">
+  Language code for translations
+</ParamField>
+
+### Zipper Layout
+
+The zipper layout alternates content blocks:
+
+```
+Row 1: [Hero Image (Left)] [Hero Content (Right)]
+Row 2: [Narrative Text (Left)] [Image (Right)]
+Row 3: [Image (Left)] [Specs (Right)]
+Row 4+: [Alternating Gallery Images]
+```
+
+Each item is 50% width with `sticky` positioning:
+
+```css
+.zipper-item {
+  width: 50%;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+}
+
+.pos-left {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.pos-right {
+  margin-left: auto;
+  margin-right: 0;
+}
+```
+
+### Content Blocks
+
+<Tabs>
+  <Tab title="Hero Content">
+    ```astro
+    <section class="content-block hero-content-block">
+      <h1>{title}</h1>
+      <p class="subtitle">{municipality} | {neighborhood}</p>
+      <div class="price-tag">{property.price}</div>
+      
+      <div class="quick-specs">
+        <span><strong>{property.bedrooms}</strong> {t("property.bedrooms")}</span>
+        <span><strong>{property.bathrooms}</strong> {t("property.bathrooms")}</span>
+        <span><strong>{property.built_m2}</strong> {t("property.built")}</span>
+      </div>
+    </section>
+    ```
+  </Tab>
+  
+  <Tab title="Narrative Text">
+    ```astro
+    <section class="content-block narrative-content-block">
+      <h2>{t("property.description")}</h2>
+      <p class="narrative-text">{description_full || description}</p>
+      <div class="meta-tag">
+        <span>{t("property.energy")}: {conservation_status}</span>
+      </div>
+    </section>
+    ```
+  </Tab>
+  
+  <Tab title="Specs">
+    ```astro
+    <section class="content-block specs-content-block">
+      <h2>{t("property.details")}</h2>
+      <ul class="specs-list">
+        <li><strong>{t("property.type")}:</strong> {property.type}</li>
+        <li><strong>{t("property.reference")}:</strong> {property.reference}</li>
+        <li><strong>{t("property.built")}:</strong> {property.built_m2} m²</li>
+        <li><strong>Piscina:</strong> {property.pool ? 'Privada' : 'No'}</li>
+        <li><strong>Garaje:</strong> {property.garage ? 'Sí' : 'No'}</li>
+      </ul>
+    </section>
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## PropertyMobile
+
+Mobile-optimized property view with full-screen image gallery and bottom drawer for details.
+
+### Location
+
+```
+src/components/properties/PropertyMobile.astro
+```
+
+### Usage
+
+```astro
+<PropertyMobile property={property} lang="es" />
+```
+
+### Props
+
+<ParamField path="property" type="Property" required>
+  Property data object
+</ParamField>
+
+<ParamField path="lang" type="string" default="es">
+  Language code
+</ParamField>
+
+### Features
+
+**Gallery Slider:**
+- Full-screen horizontal scroll gallery
+- Snap-to-center scrolling
+- Tap left/right zones to navigate
+- Hide scrollbar for cleaner UI
+
+```javascript
+gallerySlider.addEventListener('click', (e) => {
+  const clickX = e.clientX;
+  const width = window.innerWidth;
+  
+  if (clickX < width * 0.3) {
+    // Tap left 30% -> previous
+    gallerySlider.scrollBy({ left: -slideWidth, behavior: 'smooth' });
+  } else if (clickX > width * 0.7) {
+    // Tap right 30% -> next
+    gallerySlider.scrollBy({ left: slideWidth, behavior: 'smooth' });
+  }
+});
+```
+
+**Details Drawer:**
+- Slides up from bottom (75vh height)
+- Glassmorphism overlay background
+- Scrollable content area
+- Fixed header and footer
+- Contains specs, description, map, and contact form
+
+```css
+.details-drawer {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  z-index: 3000;
+  background: rgba(26, 26, 26, 0.4);
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.details-drawer.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.drawer-content {
+  height: 75vh;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+```
+
+**Floating Info Button:**
+
+```astro
+<div class="floating-actions">
+  <button id="mobile-details-trigger" class="icon-btn info-btn">
+    <span class="info-icon">i</span>
+  </button>
+</div>
+```
+
+---
+
+## PropertyMap
+
+Interactive map component using Leaflet to display property location.
+
+### Location
+
+```
+src/components/properties/PropertyMap.astro
+```
+
+### Usage
+
+```astro
+<PropertyMap
+  coords={[36.51, -4.88]}
+  title="Property Location"
+  zoom={14}
+  mapId="property-map"
+  interactive={true}
+/>
+```
+
+### Props
+
+<ParamField path="coords" type="[number, number]" default="[36.51, -4.88]">
+  Latitude and longitude coordinates
+</ParamField>
+
+<ParamField path="title" type="string" default="Ubicación">
+  Popup title text
+</ParamField>
+
+<ParamField path="zoom" type="number" default="13">
+  Initial zoom level (1-20)
+</ParamField>
+
+<ParamField path="mapId" type="string" default="property-map">
+  Unique ID for map container (required if multiple maps)
+</ParamField>
+
+<ParamField path="interactive" type="boolean" default="true">
+  Enable/disable map interactions (dragging, zoom)
+</ParamField>
+
+### Implementation
+
+```javascript
+const map = L.map(mapId, {
+  scrollWheelZoom: false,
+  dragging: interactive,
+  touchZoom: interactive ? 'center' : false,
+  doubleClickZoom: interactive,
+  boxZoom: interactive,
+  tap: interactive,
+  keyboard: interactive
+}).setView(coords, zoom);
+
+// CartoDB Voyager tiles (clean, neutral style)
+L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '© OpenStreetMap © CARTO',
+    maxZoom: 20
+  }
+).addTo(map);
+
+// Approximate location circle (privacy)
+L.circle(coords, {
+  color: '#333',
+  fillColor: '#333',
+  fillOpacity: 0.2,
+  radius: 500 // meters
+}).addTo(map).bindPopup(title);
+```
+
+<Note>
+  The map uses a circle instead of a pin marker to show approximate location, protecting exact property address.
+</Note>
+
+---
+
+## ContactProperty
+
+Property inquiry contact form with financing option.
+
+### Location
+
+```
+src/components/properties/ContactProperty.astro
+```
+
+### Usage
+
+```astro
+<ContactProperty
+  propertyId={property.id}
+  lang="es"
+/>
+```
+
+### Props
+
+<ParamField path="propertyId" type="string">
+  Property ID to associate with lead
+</ParamField>
+
+<ParamField path="lang" type="string" default="es">
+  Language code
+</ParamField>
+
+### Form Fields
+
+```astro
+<form id="property-contact-form">
+  <input type="hidden" name="property_id" value={propertyId} />
+  
+  <input type="text" name="name" placeholder="Nombre completo" required />
+  <input type="email" name="email" placeholder="Email" required />
+  <input type="tel" name="phone" placeholder="Teléfono" required />
+  
+  <select name="financing" required>
+    <option value="">¿Necesita financiación?</option>
+    <option value="si">Sí</option>
+    <option value="no">No</option>
+  </select>
+  
+  <textarea name="message" rows="4">
+    Hola, me interesa esta propiedad y me gustaría hacer una visita.
+  </textarea>
+  
+  <button type="submit">Enviar Solicitud</button>
+</form>
+```
+
+### Submission
+
+```javascript
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const formData = new FormData(form);
+  const financing = formData.get('financing');
+  const originalMessage = formData.get('message');
+  const finalMessage = `${originalMessage}\n\nNecesita financiación: ${financing === 'si' ? 'Sí' : 'No'}`;
+  
+  const leadData = {
+    name: formData.get('name'),
+    email: formData.get('email'),
+    phone: formData.get('phone'),
+    message: finalMessage,
+    property_id: formData.get('property_id'),
+    source: 'web'
+  };
+  
+  const { LeadService } = await import('../../services/api/leads');
+  const response = await LeadService.submitPropertyLead(leadData);
+  
+  if (response.success) {
+    alert(response.message);
+    form.reset();
+  }
+});
+```
+
+---
+
+## FloatingContactBtn
+
+Floating contact button that scrolls to form or submits it (desktop only).
+
+### Location
+
+```
+src/components/properties/FloatingContactBtn.astro
+```
+
+### Usage
+
+```astro
+<FloatingContactBtn />
+```
+
+### Behavior
+
+The button has two states:
+
+**1. Floating State** (before form visible):
+- Fixed at bottom center of screen
+- Text: "Contactar"
+- Action: Scrolls to contact form
+
+**2. Snapped State** (form visible):
+- Snaps into dock position within form
+- Text: "Enviar Solicitud"
+- Action: Submits the form
+
+```javascript
+const handleScroll = () => {
+  const dockCenterY = dock.getBoundingClientRect().top + dock.height / 2;
+  const fixedTargetY = window.innerHeight - 32 - btnHeight / 2;
+  
+  if (dockCenterY <= fixedTargetY) {
+    wrapper.classList.add('is-snapped');
+    btn.textContent = 'Enviar Solicitud';
+  } else {
+    wrapper.classList.remove('is-snapped');
+    btn.textContent = 'Contactar';
+  }
+};
+```
+
+<Warning>
+  This component is desktop-only. It's hidden on screens below 900px width.
+</Warning>
+
+---
+
+## Complete Property Page Example
+
+```astro title="src/pages/propiedades/[...slug].astro"
+---
+import PropertyDesktop from '../../components/properties/PropertyDesktop.astro';
+import PropertyMobile from '../../components/properties/PropertyMobile.astro';
+import { PropertyService } from '../../services/api/properties';
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const propertyId = Astro.params.slug?.split('/').pop();
+const property = await PropertyService.getById(propertyId, lang === 'en' ? 'en-GB' : 'es-ES');
+---
+
+<!DOCTYPE html>
+<html>
+  <head>...</head>
+  <body>
+    <div class="desktop-view">
+      <PropertyDesktop property={property} lang={lang} />
+    </div>
+    
+    <div class="mobile-view">
+      <PropertyMobile property={property} lang={lang} />
+    </div>
+  </body>
+</html>
+
+<style>
+  .mobile-view {
+    display: none;
+  }
+  
+  @media (max-width: 900px) {
+    .desktop-view {
+      display: none;
+    }
+    .mobile-view {
+      display: block;
+    }
+  }
+</style>
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="API Integration" icon="plug" href="/reference/property-interface">
+    PropertyService API methods
+  </Card>
+  
+  <Card title="Data Types" icon="code" href="/reference/property-interface">
+    Property type definitions
+  </Card>
+  
+  <Card title="Forms & Validation" icon="check" href="/guides/working-with-properties">
+    Form handling guide
+  </Card>
+  
+  <Card title="Internationalization" icon="globe" href="/concepts/internationalization">
+    Translation utilities
+  </Card>
+</CardGroup>

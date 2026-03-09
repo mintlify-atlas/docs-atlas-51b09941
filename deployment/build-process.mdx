@@ -1,0 +1,145 @@
+---
+title: 'Build Process'
+description: 'Understanding the Astro build process, output configuration, and optimization'
+---
+
+The Adosa Real Estate website uses Astro's static site generation to create optimized HTML, CSS, and JavaScript files ready for deployment.
+
+## Build Command
+
+The build process is triggered using:
+
+```bash
+npm run build
+```
+
+This command executes `astro build` as defined in `package.json:7`.
+
+## Build Configuration
+
+The build behavior is configured in `astro.config.mjs:1`:
+
+```javascript
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+    output: 'static',
+    compressHTML: true,
+    vite: {
+        ssr: {
+            noExternal: ['gsap'],
+        },
+    },
+});
+```
+
+### Key Settings
+
+- **`output: 'static'`** - Generates static HTML files for all pages at build time
+- **`compressHTML: true`** - Minifies HTML output to reduce file size
+- **`vite.ssr.noExternal: ['gsap']`** - Ensures GSAP animation library is processed during server-side rendering
+
+## Build Output
+
+The build process generates a `dist/` folder containing:
+
+- **Static HTML files** - Pre-rendered pages for all routes
+- **Optimized assets** - Minified CSS and JavaScript bundles
+- **Public files** - Static assets from `public/` directory, including:
+  - `/api/proxy.php` - PHP proxy for eGO API integration
+  - Images and fonts
+  - Favicon and other static resources
+
+### Output Structure
+
+```
+dist/
+├── index.html
+├── propiedades/
+│   └── index.html
+├── es/
+│   └── propiedades/
+│       └── index.html
+├── _astro/
+│   ├── [hashed-css-files]
+│   └── [hashed-js-files]
+└── api/
+    └── proxy.php
+```
+
+## Environment Variables
+
+The build requires the eGO Real Estate API token:
+
+```bash
+PUBLIC_EGO_API_TOKEN="your-token-here"
+```
+
+Locally, this is provided via a `.env` file. In production (GitHub Actions), it's injected as a secret.
+
+## Asset Optimization
+
+Astro automatically optimizes assets during the build:
+
+1. **JavaScript** - Bundled and minified with content-based hashing
+2. **CSS** - Extracted, minified, and scoped to components
+3. **Images** - Copied from `public/` without transformation (optimization happens at source)
+4. **HTML** - Compressed and whitespace-removed when `compressHTML: true`
+
+## Build Validation
+
+The deployment workflow includes an automated validation step to ensure properties are present:
+
+```bash
+grep -q "property-card" dist/propiedades/index.html
+```
+
+If properties are missing from the generated HTML, the deployment is aborted to prevent publishing incomplete content.
+
+## Build Troubleshooting
+
+### Properties Not Loading
+
+**Symptom**: Build validation fails with "NO se encontraron propiedades"
+
+**Causes**:
+- Invalid or expired `PUBLIC_EGO_API_TOKEN`
+- eGO API rate limiting (HTTP 429)
+- Network connectivity issues during build
+
+**Solution**: Check the build logs for API errors and verify token validity.
+
+### Build Memory Issues
+
+**Symptom**: Build process crashes or hangs
+
+**Solution**: 
+```bash
+NODE_OPTIONS="--max-old-space-size=4096" npm run build
+```
+
+### GSAP SSR Errors
+
+**Symptom**: "Cannot use import statement outside a module" for GSAP
+
+**Solution**: The `vite.ssr.noExternal: ['gsap']` configuration in `astro.config.mjs:12` handles this. Ensure it's present.
+
+### Slow Build Times
+
+**Typical build time**: 30-60 seconds (depending on number of properties)
+
+Factors affecting build speed:
+- Number of API requests to eGO
+- Network latency
+- Server resources (GitHub Actions uses ubuntu-latest runners)
+
+## Local Build Testing
+
+Before deploying, test the build locally:
+
+```bash
+npm run build
+npm run preview
+```
+
+The preview server serves the `dist/` folder at `http://localhost:4321` to verify the production build.

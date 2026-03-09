@@ -1,0 +1,244 @@
+---
+title: 'Architecture Overview'
+description: 'Understanding the Astro 5 architecture and project structure of Adosa Real Estate'
+---
+
+## Astro 5 Framework
+
+Adosa Real Estate is built on **Astro 5**, a modern web framework optimized for content-rich websites. The application leverages Astro's static site generation (SSG) capabilities to deliver blazing-fast performance.
+
+### Key Configuration
+
+The project is configured in `astro.config.mjs`:
+
+```javascript
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+    output: 'static',
+    devToolbar: {
+        enabled: false
+    },
+    compressHTML: true,
+    vite: {
+        ssr: {
+            noExternal: ['gsap'], // GSAP processed in SSR
+        },
+    },
+});
+```
+
+<Info>
+  **Static Output**: The entire site is pre-rendered at build time, resulting in optimal performance and SEO.
+</Info>
+
+## Project Structure
+
+The source code follows Astro's convention-based directory structure:
+
+```
+src/
+├── components/          # Reusable Astro components
+│   ├── properties/      # Property-specific components
+│   ├── Navigation.astro
+│   ├── Footer.astro
+│   └── ...
+├── layouts/             # Page layouts
+│   └── BaseLayout.astro
+├── pages/               # File-based routing
+│   ├── [...lang]/       # i18n routing pattern
+│   └── 404.astro
+├── styles/              # Global stylesheets
+│   ├── theme.css        # CSS variables and theming
+│   ├── global.css       # Base styles and utilities
+│   └── animations.css   # Animation definitions
+├── services/            # API integration layer
+│   └── api/
+│       ├── api.ts       # Core API client
+│       ├── properties.ts
+│       └── leads.ts
+├── data/                # Type definitions and data models
+│   └── properties.ts
+├── i18n/                # Internationalization
+│   ├── ui.ts            # Translation strings
+│   └── utils.ts         # i18n utilities
+├── utils/               # Helper functions
+├── types/               # TypeScript definitions
+└── scripts/             # Client-side scripts
+```
+
+## File-Based Routing
+
+Astro uses file-based routing where the file structure in `src/pages/` determines the URL structure:
+
+<CodeGroup>
+
+```plaintext File Structure
+src/pages/
+├── [...lang]/
+│   ├── index.astro              → / or /en
+│   ├── propiedades.astro        → /propiedades or /en/propiedades
+│   ├── contacto.astro           → /contacto or /en/contacto
+│   ├── mision.astro             → /mision or /en/mision
+│   └── propiedades/
+│       └── [...slug].astro      → /propiedades/[slug]
+└── 404.astro                    → 404 page
+```
+
+```astro Dynamic Route Example
+---
+// src/pages/[...lang]/propiedades/[...slug].astro
+import { PropertyService } from '../../../services/api/properties';
+
+export async function getStaticPaths() {
+  const properties = await PropertyService.getAll();
+  
+  return properties.map(property => ({
+    params: { slug: property.id, lang: 'es' }
+  }));
+}
+---
+```
+
+</CodeGroup>
+
+<Note>
+  The `[...lang]` pattern creates optional language prefixes, supporting both `/page` (Spanish) and `/en/page` (English) URLs.
+</Note>
+
+## Static Site Generation (SSG)
+
+### Build-Time Rendering
+
+All pages are generated at build time using `getStaticPaths()` for dynamic routes:
+
+```typescript
+export async function getStaticPaths() {
+  const properties = await PropertyService.getAll('es-ES');
+  const propertiesEN = await PropertyService.getAll('en-GB');
+  
+  return [
+    ...properties.map(p => ({ params: { slug: p.id, lang: undefined } })),
+    ...propertiesEN.map(p => ({ params: { slug: p.id, lang: 'en' } }))
+  ];
+}
+```
+
+### API Data Fetching
+
+The eGO Real Estate API is called during build time to fetch property data. See the [API Integration](/concepts/api-integration) guide for details.
+
+<Warning>
+  Build guards are implemented to prevent deploying empty pages if the API fails:
+  ```typescript
+  if (results.length === 0) {
+    throw new Error("⛔ BUILD GUARD: No properties fetched. Aborting build.");
+  }
+  ```
+</Warning>
+
+## Base Layout
+
+All pages extend the `BaseLayout.astro` component located in `src/layouts/`:
+
+```astro
+---
+// src/layouts/BaseLayout.astro
+import "../styles/global.css";
+import "../styles/animations.css";
+import Loader from "../components/Loader.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+  lang?: string;
+  noindex?: boolean;
+}
+
+const { title, description, lang = "es" } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <!-- Fonts, analytics, etc. -->
+  </head>
+  <body>
+    <Loader />
+    <slot />
+    <!-- Global scripts -->
+  </body>
+</html>
+```
+
+## Performance Optimizations
+
+<CardGroup cols={2}>
+
+<Card title="HTML Compression" icon="file-zipper">
+  Enabled via `compressHTML: true` in Astro config
+</Card>
+
+<Card title="Smooth Scrolling" icon="arrow-down">
+  Lenis library for desktop (>1024px) with optimized settings
+</Card>
+
+<Card title="GSAP SSR" icon="wand-magic-sparkles">
+  Animation library processed server-side via Vite config
+</Card>
+
+<Card title="Image Optimization" icon="image">
+  Native Astro image optimization for property galleries
+</Card>
+
+</CardGroup>
+
+## Dependencies
+
+Core dependencies from `package.json`:
+
+```json
+{
+  "dependencies": {
+    "astro": "^5.16.5",
+    "gsap": "^3.14.2",
+    "lenis": "^1.3.16",
+    "leaflet": "^1.9.4",
+    "qrcode": "^1.5.4"
+  }
+}
+```
+
+<Accordion title="What each dependency does">
+  - **astro**: Core framework
+  - **gsap**: High-performance animations (hero, parallax, reveals)
+  - **lenis**: Smooth scroll for desktop
+  - **leaflet**: Interactive property maps
+  - **qrcode**: QR code generation for property sharing
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Design System" icon="palette" href="/concepts/design-system">
+  Learn about the CSS variable system and component styles
+</Card>
+
+<Card title="Internationalization" icon="language" href="/concepts/internationalization">
+  Understand the i18n routing and translation system
+</Card>
+
+<Card title="API Integration" icon="plug" href="/concepts/api-integration">
+  Explore the eGO Real Estate API integration
+</Card>
+
+<Card title="Components" icon="puzzle-piece" href="/components/overview">
+  Browse available Astro components
+</Card>
+
+</CardGroup>

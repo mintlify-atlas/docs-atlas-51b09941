@@ -1,0 +1,423 @@
+---
+title: 'Adding Components'
+description: 'Step-by-step guide to creating new Astro components in the Adosa project'
+---
+
+## Component Architecture
+
+Astro components use a unique `.astro` format that combines:
+- Frontmatter (TypeScript/JavaScript)
+- Template (HTML-like JSX)
+- Scoped styles (CSS)
+- Client-side scripts
+
+## Creating a New Component
+
+<Steps>
+  <Step title="Create the Component File">
+    Components live in `src/components/`. Create a new file:
+    
+    ```bash
+    touch src/components/MyComponent.astro
+    ```
+    
+    For property-related components, use the subdirectory:
+    
+    ```bash
+    touch src/components/properties/MyPropertyComponent.astro
+    ```
+  </Step>
+
+  <Step title="Define the Component Structure">
+    Here's a basic template:
+    
+    ```astro
+    ---
+    // Frontmatter: TypeScript logic, imports, props
+    interface Props {
+      title: string;
+      subtitle?: string;
+    }
+    
+    const { title, subtitle } = Astro.props;
+    ---
+    
+    <div class="my-component">
+      <h2>{title}</h2>
+      {subtitle && <p>{subtitle}</p>}
+    </div>
+    
+    <style>
+      .my-component {
+        padding: var(--spacing-section, 4rem);
+        background: var(--color-1);
+      }
+      
+      h2 {
+        font-family: var(--font-heading);
+        color: var(--color-4);
+      }
+    </style>
+    ```
+  </Step>
+
+  <Step title="Import and Use the Component">
+    Import your component in any `.astro` page or layout:
+    
+    ```astro
+    ---
+    import MyComponent from '../components/MyComponent.astro';
+    ---
+    
+    <MyComponent title="Welcome" subtitle="Subtitle text" />
+    ```
+  </Step>
+</Steps>
+
+## Real Example: Footer Component
+
+Let's examine the existing `Footer.astro` component as a reference:
+
+**Location:** `src/components/Footer.astro`
+
+```astro
+---
+import {
+  getLangFromUrl,
+  useTranslations,
+  useTranslatedPath,
+} from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const translatePath = useTranslatedPath(lang);
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-separator"></div>
+    
+    <div class="footer-content">
+      <div class="footer-block links-block">
+        <nav class="footer-nav">
+          <ul class="nav-list">
+            <li><a href={translatePath("/")}>{t("nav.home")}</a></li>
+            <li><a href={translatePath("/propiedades")}>{t("nav.properties")}</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+    
+    <div class="copyright">
+      &copy; {currentYear} Adosa.
+    </div>
+  </div>
+</footer>
+```
+
+**Key features:**
+- Uses i18n utilities for translations
+- Computes `currentYear` dynamically
+- Scoped styles (not shown for brevity)
+
+See `src/components/Footer.astro:1-100` for the full implementation.
+
+## Styling Patterns
+
+### Using CSS Custom Properties
+
+The project uses consistent CSS variables defined in `src/styles/global.css`:
+
+```css
+:root {
+  --color-1: #FFFFFF;        /* Primary background */
+  --color-4: #1A1A1A;        /* Dark text/elements */
+  --font-heading: 'Onest', sans-serif;
+  --font-body: 'Onest', sans-serif;
+  --spacing-section: 4rem;
+  --spacing-container: 4rem;
+  --height-nav: 90px;
+}
+```
+
+**Usage in components:**
+
+```astro
+<style>
+  .my-section {
+    padding: var(--spacing-section);
+    background: var(--color-1);
+    color: var(--color-4);
+  }
+</style>
+```
+
+### Responsive Design
+
+Follow the existing breakpoint conventions:
+
+```css
+/* Desktop-first approach */
+.component {
+  font-size: 2rem;
+}
+
+/* Tablet */
+@media (max-width: 1023px) {
+  .component {
+    font-size: 1.5rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .component {
+    font-size: 1.2rem;
+  }
+}
+```
+
+<Tip>
+  The Navigation component at `src/components/Navigation.astro:352-378` shows excellent responsive patterns including hamburger menu implementation.
+</Tip>
+
+## Adding Client-Side Interactivity
+
+For components that need JavaScript, use `<script>` tags:
+
+```astro
+---
+interface Props {
+  items: string[];
+}
+const { items } = Astro.props;
+---
+
+<div class="interactive-list">
+  {items.map((item, i) => (
+    <button class="list-item" data-index={i}>{item}</button>
+  ))}
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.list-item');
+  
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLElement;
+      const index = target.dataset.index;
+      console.log(`Clicked item ${index}`);
+    });
+  });
+</script>
+```
+
+<Warning>
+  Scripts in `.astro` components run once per page load. For dynamic content, consider using framework components (React, Vue) with `client:load` directive.
+</Warning>
+
+## Animation Integration
+
+Add scroll-triggered animations using the project's utilities:
+
+```astro
+---
+// Import animation helper
+---
+
+<div class="animated-section">
+  <h2 class="text-reveal">This text will reveal on scroll</h2>
+  <p class="text-reveal">So will this paragraph</p>
+</div>
+
+<script>
+  import { initTextRevealAnimation } from '../utils/textRevealAnimation';
+  
+  // Initialize after page is ready
+  window.addEventListener('page-ready', () => {
+    initTextRevealAnimation('.animated-section', {
+      stagger: 0.15,
+      start: 'top 85%',
+      duration: 1.2
+    });
+  });
+</script>
+```
+
+<Info>
+  See the [Customizing Animations](/guides/customizing-animations) guide for detailed animation patterns.
+</Info>
+
+## Component Props Patterns
+
+### Required vs Optional Props
+
+```astro
+---
+interface Props {
+  title: string;              // Required
+  subtitle?: string;          // Optional
+  items?: string[];           // Optional with default
+}
+
+const { 
+  title, 
+  subtitle,
+  items = [] 
+} = Astro.props;
+---
+```
+
+### Complex Props (Example: Property Component)
+
+```astro
+---
+import type { Property } from '../types';
+
+interface Props {
+  property: Property;
+  showDetails?: boolean;
+}
+
+const { property, showDetails = false } = Astro.props;
+---
+
+<div class="property-card">
+  <img src={property.image} alt={property.title} />
+  <h3>{property.title}</h3>
+  <p>{property.location}</p>
+  
+  {showDetails && (
+    <div class="details">
+      <span>{property.bedrooms} beds</span>
+      <span>{property.bathrooms} baths</span>
+    </div>
+  )}
+</div>
+```
+
+See `src/types/index.ts:74-77` for the `PropertyCardProps` interface.
+
+## Reusable Component Examples
+
+The project includes several reusable components you can reference:
+
+<CardGroup cols={2}>
+  <Card title="Navigation" icon="bars">
+    **Location:** `src/components/Navigation.astro`
+    
+    Features:
+    - Desktop and mobile layouts
+    - Hamburger menu animation
+    - Language switcher
+    - Auto-hide on scroll
+    
+    Lines: `src/components/Navigation.astro:1-469`
+  </Card>
+  
+  <Card title="ScrollGallery" icon="images">
+    **Location:** `src/components/ScrollGallery.astro`
+    
+    Features:
+    - Scroll-hijacking gallery
+    - Progress indicators
+    - Configurable text position
+    - Responsive layout
+    
+    Lines: `src/components/ScrollGallery.astro:1-80`
+  </Card>
+  
+  <Card title="ShareButtons" icon="share-nodes">
+    **Location:** `src/components/ShareButtons.astro`
+    
+    Features:
+    - Social media sharing
+    - WhatsApp integration
+    - Copy link functionality
+    - QR code generation
+  </Card>
+  
+  <Card title="EmptySection" icon="square-dashed">
+    **Location:** `src/components/EmptySection.astro`
+    
+    Features:
+    - Simple placeholder component
+    - Minimal styling
+    - Reusable pattern
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Component Size">
+    Keep components focused and single-purpose. If a component exceeds 200 lines, consider breaking it into smaller sub-components.
+  </Accordion>
+  
+  <Accordion title="TypeScript Types">
+    Always define Props interfaces. This provides autocomplete and type safety:
+    
+    ```typescript
+    interface Props {
+      title: string;
+      count: number;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Scoped Styles">
+    Prefer scoped styles in `<style>` tags over global CSS. This prevents style conflicts between components.
+  </Accordion>
+  
+  <Accordion title="Accessibility">
+    Include proper ARIA labels and semantic HTML:
+    
+    ```astro
+    <button aria-label="Close menu" class="close-btn">
+      <span>×</span>
+    </button>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing Your Component
+
+<Steps>
+  <Step title="Visual Testing">
+    Add your component to a test page and run the dev server:
+    
+    ```bash
+    npm run dev
+    ```
+    
+    Navigate to the page and verify appearance.
+  </Step>
+  
+  <Step title="Responsive Testing">
+    Use browser DevTools device emulation to test different screen sizes:
+    - Desktop (greater than 1024px)
+    - Tablet (768px - 1023px)
+    - Mobile (less than 768px)
+  </Step>
+  
+  <Step title="Build Testing">
+    Verify your component works in production build:
+    
+    ```bash
+    npm run build && npm run preview
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Properties" icon="building" href="/guides/working-with-properties">
+    Learn about the Property interface and data fetching
+  </Card>
+  
+  <Card title="Customizing Animations" icon="wand-magic-sparkles" href="/guides/customizing-animations">
+    Add scroll-triggered animations to your components
+  </Card>
+</CardGroup>

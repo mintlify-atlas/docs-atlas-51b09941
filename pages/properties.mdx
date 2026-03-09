@@ -1,0 +1,459 @@
+---
+title: Properties Page
+description: Property listing page with filtering, sorting, and dynamic grid display
+---
+
+The properties page displays all available properties for sale with advanced filtering and sorting capabilities.
+
+## Route
+
+- **Path**: `/propiedades` (Spanish) or `/en/propiedades` (English)
+- **File**: `src/pages/[...lang]/propiedades.astro`
+- **Type**: Static page with dynamic client-side filtering
+
+## Page Structure
+
+### Hero Section
+
+Simple hero with static image background:
+
+```astro title="src/pages/[...lang]/propiedades.astro"
+<GlobalBackground
+  heroMedia="/images/bg/propiedades.jpg"
+  sectionBackgrounds={[]}
+/>
+
+<section class="section-fullscreen hero-simple">
+  <div class="hero-bg-overlay"></div>
+  <div class="container hero-container">
+    <div class="line-mask">
+      <h1 class="hero-title">{t("nav.properties")}</h1>
+    </div>
+  </div>
+</section>
+```
+
+**Features:**
+- 40vh height with minimum 400px
+- Dark overlay for text readability
+- Animated title reveal via GSAP
+
+### Properties Grid Section
+
+Main section containing filters and property cards:
+
+```astro
+<section class="section-fullscreen catalog-section">
+  <div class="container">
+    <PropertyGrid lang={lang} />
+  </div>
+</section>
+```
+
+## PropertyGrid Component
+
+The `PropertyGrid` component handles fetching, filtering, and displaying properties.
+
+### Data Fetching
+
+```astro title="src/components/properties/PropertyGrid.astro"
+import { PropertyService } from "../../services/api/properties";
+
+const { lang = "es" } = Astro.props;
+const isEn = lang === "en";
+
+const PROPERTIES = await PropertyService.getAll(isEn ? "en-GB" : "es-ES");
+```
+
+The `PropertyService.getAll()` method:
+- Fetches properties from the eGO API
+- Paginates through all results (100 per page)
+- Filters for sale properties only
+- Maps API data to local `Property` type
+- Implements rate limiting (1.5s delay between pages)
+
+### Layout Structure
+
+Two-column layout: sidebar filters + property grid
+
+```astro
+<div class="properties-container">
+  {/* FILTERS SIDEBAR */}
+  <aside class="filters-sidebar">
+    {/* Filter controls */}
+  </aside>
+
+  {/* GRID AREA */}
+  <div class="grid-container-wrapper">
+    <div class="properties-grid" id="prop-grid">
+      {/* Property cards */}
+    </div>
+    <div class="pagination-indicator">
+      {/* Pagination dots */}
+    </div>
+  </div>
+</div>
+```
+
+**Desktop Layout:**
+```css
+.properties-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 4rem;
+}
+
+.filters-sidebar {
+  position: sticky;
+  top: 120px;
+}
+
+.properties-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem 2rem;
+}
+```
+
+## Filters
+
+The sidebar contains multiple filter types:
+
+### 1. Sort Dropdown
+
+Custom select component for sorting:
+
+```astro
+<div class="custom-select" data-filter-type="sort">
+  <button class="select-trigger" type="button">
+    <span class="selected-text">{isEn ? "Select..." : "Seleccionar..."}</span>
+    <span class="chevron">▼</span>
+  </button>
+  <div class="select-options">
+    <div class="option" data-value="price-desc">
+      {isEn ? "Price: High to Low" : "De mayor a menor precio"}
+    </div>
+    <div class="option" data-value="price-asc">
+      {isEn ? "Price: Low to High" : "De menor a mayor precio"}
+    </div>
+    <div class="option" data-value="size-desc">
+      {isEn ? "Size: Large to Small" : "Más a menos m²"}
+    </div>
+    <div class="option" data-value="size-asc">
+      {isEn ? "Size: Small to Large" : "De menos a más m²"}
+    </div>
+  </div>
+</div>
+```
+
+### 2. Location Filter
+
+Radio buttons for location selection:
+
+```astro
+<div class="filter-section">
+  <h4 class="filter-title">{t("grid.location")}</h4>
+  <div class="filter-options">
+    <label class="filter-option">
+      <input type="radio" name="location" value="all" checked />
+      <span class="custom-radio"></span>
+      <span class="label-text">{t("grid.all")}</span>
+    </label>
+    <label class="filter-option">
+      <input type="radio" name="location" value="Marbella" />
+      <span class="custom-radio"></span>
+      <span class="label-text">Marbella</span>
+    </label>
+    {/* More locations... */}
+  </div>
+</div>
+```
+
+### 3. Property Type Filter
+
+Radio buttons for property types:
+
+```astro
+<label class="filter-option">
+  <input type="radio" name="type" value="Apartamento" />
+  <span class="custom-radio"></span>
+  <span class="label-text">{t("grid.apartments")}</span>
+</label>
+<label class="filter-option">
+  <input type="radio" name="type" value="Casa" />
+  <span class="custom-radio"></span>
+  <span class="label-text">{t("grid.houses")}</span>
+</label>
+```
+
+### 4. Beds & Baths Filters
+
+Dropdown selectors for minimum bedroom/bathroom count:
+
+```astro
+<div class="custom-select" data-filter-type="beds">
+  <button class="select-trigger" type="button">
+    <span class="selected-text">{t("grid.any")}</span>
+    <span class="chevron">▼</span>
+  </button>
+  <div class="select-options">
+    <div class="option selected" data-value="any">{t("grid.any")}</div>
+    <div class="option" data-value="1">+1</div>
+    <div class="option" data-value="2">+2</div>
+    <div class="option" data-value="3">+3</div>
+  </div>
+</div>
+```
+
+## Property Cards
+
+Each property is rendered as a linked card:
+
+```astro
+<a
+  class="property-link"
+  href={translatePath(
+    `/propiedades/${normalizeSlug(prop.type)}-${normalizeSlug(prop.location)}/${prop.id}`
+  )}
+  data-location={prop.filterLocation || prop.location}
+  data-type={prop.type}
+  data-beds={prop.bedrooms}
+  data-baths={prop.bathrooms}
+  data-size={prop.size}
+  data-status={prop.status}
+  data-price-raw={prop.price_long}
+  data-size-raw={prop.size}
+>
+  <div class={`property-card ${prop.status === "DESTACADO" ? "featured" : ""}`}>
+    {prop.status === "DESTACADO" && (
+      <div class="featured-header">
+        <span>{t("grid.featured")}</span>
+      </div>
+    )}
+    <div class="prop-image-wrapper">
+      <img src={prop.image} alt={prop.title} loading="lazy" />
+    </div>
+    <div class="prop-info">
+      <h3 class="prop-title">{prop.title}</h3>
+      <p class="prop-price">{prop.price}</p>
+      <p class="prop-subtitle">
+        {isEn ? prop.municipality_en || prop.location : prop.location} |
+        {t(`grid.${propertyTypeKey}`)}
+      </p>
+      <div class="prop-specs">
+        {prop.bedrooms > 0 && <span>{prop.bedrooms} {t("grid.bed_unit")}</span>}
+        {prop.bathrooms > 0 && <span>{prop.bathrooms} {t("grid.bath_unit")}</span>}
+        <span>{prop.size} m² const.</span>
+        {prop.land_size > 0 && <span>{prop.land_size} m² parcela</span>}
+      </div>
+    </div>
+  </div>
+</a>
+```
+
+**Featured Properties:**
+- Display a special header badge
+- Styled with dark border and background
+- Highlighted in the grid
+
+## Client-Side Filtering
+
+Filtering logic runs entirely in the browser:
+
+```typescript title="src/components/properties/PropertyGrid.astro"
+let filters = {
+  location: "all",
+  type: "all",
+  beds: "any",
+  baths: "any",
+  sort: "none",
+};
+
+function updateGrid() {
+  cards.forEach((card) => {
+    const loc = (card.getAttribute("data-location") || "").trim();
+    const type = (card.getAttribute("data-type") || "").trim();
+    const beds = parseInt(card.getAttribute("data-beds") || "0");
+    const baths = parseInt(card.getAttribute("data-baths") || "0");
+
+    let visible = true;
+
+    // Location filter
+    if (filters.location !== "all" && loc !== filters.location)
+      visible = false;
+
+    // Type filter
+    if (filters.type !== "all" && type !== filters.type)
+      visible = false;
+
+    // Beds filter (minimum)
+    if (filters.beds !== "any") {
+      const minBeds = parseInt(filters.beds);
+      if (beds < minBeds) visible = false;
+    }
+
+    // Baths filter (minimum)
+    if (filters.baths !== "any") {
+      const minBaths = parseInt(filters.baths);
+      if (baths < minBaths) visible = false;
+    }
+
+    if (visible) card.classList.remove("hidden");
+    else card.classList.add("hidden");
+  });
+
+  sortGrid();
+}
+```
+
+## Sorting
+
+Sort visible cards by price or size:
+
+```typescript
+function sortGrid() {
+  if (filters.sort === "none") return;
+
+  const grid = document.getElementById("prop-grid");
+  const visibleCards = Array.from(cards).filter(
+    (c) => !c.classList.contains("hidden")
+  );
+  const hiddenCards = Array.from(cards).filter((c) =>
+    c.classList.contains("hidden")
+  );
+
+  visibleCards.sort((a, b) => {
+    let valA = 0;
+    let valB = 0;
+
+    if (filters.sort.startsWith("price")) {
+      valA = parseFloat(a.getAttribute("data-price-raw") || "0");
+      valB = parseFloat(b.getAttribute("data-price-raw") || "0");
+    } else if (filters.sort.startsWith("size")) {
+      valA = parseFloat(a.getAttribute("data-size-raw") || "0");
+      valB = parseFloat(b.getAttribute("data-size-raw") || "0");
+    }
+
+    if (filters.sort.endsWith("asc")) {
+      return valA - valB;
+    } else {
+      return valB - valA;
+    }
+  });
+
+  // Re-append in order
+  visibleCards.forEach((card) => grid.appendChild(card));
+  hiddenCards.forEach((card) => grid.appendChild(card));
+}
+```
+
+## Pagination Indicator
+
+Visual scroll indicator with three dots:
+
+```astro
+<div class="pagination-indicator">
+  <span class="page-dot active"></span>
+  <span class="page-dot"></span>
+  <span class="page-dot"></span>
+</div>
+```
+
+Updates based on scroll position:
+
+```typescript
+function updatePaginationDots() {
+  const gridHeight = gridContainer.scrollHeight;
+  const scrollPosition = window.scrollY;
+  const gridTop = gridContainer.offsetTop;
+  const relativeScroll = scrollPosition - gridTop + viewportHeight / 2;
+  const scrollPercentage = (relativeScroll / gridHeight) * 100;
+
+  let activeIndex = 0;
+  if (scrollPercentage < 25) activeIndex = 0;
+  else if (scrollPercentage >= 25 && scrollPercentage < 74) activeIndex = 1;
+  else activeIndex = 2;
+
+  pageDots.forEach((dot, index) => {
+    if (index === activeIndex) dot.classList.add("active");
+    else dot.classList.remove("active");
+  });
+}
+
+window.addEventListener("scroll", updatePaginationDots);
+```
+
+## Custom Select Components
+
+Custom dropdowns with glassmorphism styling:
+
+```typescript
+customSelects.forEach((select) => {
+  const trigger = select.querySelector(".select-trigger");
+  const options = select.querySelectorAll(".option");
+  const selectedText = select.querySelector(".selected-text");
+  const filterType = select.getAttribute("data-filter-type");
+
+  // Toggle dropdown
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    customSelects.forEach((s) => {
+      if (s !== select) s.classList.remove("open");
+    });
+    select.classList.toggle("open");
+  });
+
+  // Handle option click
+  options.forEach((option) => {
+    option.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const value = option.getAttribute("data-value") || "";
+      const text = option.textContent || "";
+
+      selectedText.textContent = text;
+      select.classList.remove("open");
+
+      options.forEach((opt) => opt.classList.remove("selected"));
+      option.classList.add("selected");
+
+      if (filterType === "beds") filters.beds = value;
+      if (filterType === "baths") filters.baths = value;
+      if (filterType === "sort") filters.sort = value;
+
+      updateGrid();
+    });
+  });
+});
+```
+
+## Mobile Responsiveness
+
+```css
+@media (max-width: 900px) {
+  .properties-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .properties-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem;
+  }
+  
+  .filters-sidebar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .pagination-indicator {
+    display: none;
+  }
+}
+```
+
+## Related Files
+
+- Service: `src/services/api/properties.ts`
+- Component: `src/components/properties/PropertyGrid.astro`
+- Utils: `src/utils/slug.ts`
+- Types: `src/types/index.ts`

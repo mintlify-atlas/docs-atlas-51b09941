@@ -1,0 +1,358 @@
+---
+title: 'TypeScript Configuration'
+description: 'TypeScript compiler options and settings for Adosa Real Estate'
+---
+
+## Overview
+
+The TypeScript configuration file (`tsconfig.json`) defines compiler options, file inclusions, and type-checking behavior for the Adosa Real Estate project.
+
+## Complete Configuration
+
+```json tsconfig.json
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "astro.config.mjs"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}
+```
+
+## Configuration Options
+
+### extends
+
+**Type:** `string`  
+**Value:** `"astro/tsconfigs/strict"`
+
+Inherits TypeScript configuration from Astro's strict preset.
+
+```json
+"extends": "astro/tsconfigs/strict"
+```
+
+**What this provides:**
+
+The `astro/tsconfigs/strict` preset enables:
+
+- **Strict type checking**: All strict mode flags enabled
+- **Modern JavaScript features**: Support for ES2022+ syntax
+- **Module resolution**: Optimized for Astro's file structure
+- **JSX support**: Configured for Astro components
+- **Path mappings**: Support for Astro's special imports
+
+**Inherited compiler options include:**
+
+```json
+{
+  "strict": true,
+  "strictNullChecks": true,
+  "strictFunctionTypes": true,
+  "strictBindCallApply": true,
+  "strictPropertyInitialization": true,
+  "noImplicitAny": true,
+  "noImplicitThis": true,
+  "alwaysStrict": true,
+  "noUnusedLocals": true,
+  "noUnusedParameters": true,
+  "noImplicitReturns": true,
+  "noFallthroughCasesInSwitch": true,
+  "moduleResolution": "bundler",
+  "allowJs": true,
+  "checkJs": false,
+  "jsx": "preserve"
+}
+```
+
+<Info>
+  The strict preset ensures maximum type safety and helps catch potential bugs during development.
+</Info>
+
+### include
+
+**Type:** `string[]`
+
+Defines which files TypeScript should process.
+
+```json
+"include": [
+  ".astro/types.d.ts",
+  "src/**/*",
+  "astro.config.mjs"
+]
+```
+
+#### `.astro/types.d.ts`
+
+Astro-generated type definitions:
+
+- **Auto-generated**: Created during `astro dev` or `astro build`
+- **Content collections**: Provides types for content collections
+- **Image types**: Includes types for Astro's image optimization
+- **Environment variables**: Types for `import.meta.env`
+
+**Example types provided:**
+
+```typescript
+// Auto-generated in .astro/types.d.ts
+declare module 'astro:content' {
+  export const getCollection: (collection: 'properties') => Promise<CollectionEntry<'properties'>[]>;
+}
+```
+
+#### `src/**/*`
+
+Includes all source files recursively:
+
+- **Astro components**: `.astro` files
+- **TypeScript files**: `.ts` and `.tsx` files
+- **JavaScript files**: `.js` and `.jsx` files (with allowJs)
+- **Type definitions**: `.d.ts` files
+
+**Project structure covered:**
+
+```
+src/
+├── components/
+├── layouts/
+├── pages/
+├── styles/
+├── utils/
+└── content/
+```
+
+#### `astro.config.mjs`
+
+Includes the Astro configuration file:
+
+- Enables TypeScript checking for config options
+- Provides autocomplete in editors
+- Validates integration options
+
+<Note>
+  Including the config file ensures type safety when adding integrations or modifying build settings.
+</Note>
+
+### exclude
+
+**Type:** `string[]`
+
+Defines which files/folders TypeScript should ignore.
+
+```json
+"exclude": [
+  "dist"
+]
+```
+
+#### `dist`
+
+Excludes the build output directory:
+
+- **Build artifacts**: Contains compiled and bundled files
+- **Performance**: Speeds up type checking by ignoring output
+- **Prevents conflicts**: Avoids checking generated code
+
+**What's in dist:**
+
+```
+dist/
+├── index.html
+├── properties/
+│   └── [slug].html
+├── _astro/
+│   ├── *.js (bundled scripts)
+│   └── *.css (bundled styles)
+└── assets/
+    └── (optimized images)
+```
+
+<Warning>
+  Never commit the `dist` folder to version control. It should be regenerated on each build.
+</Warning>
+
+## Type Checking Commands
+
+### Check types
+
+```bash
+# Check all TypeScript files
+npx astro check
+
+# Check with watch mode
+npx astro check --watch
+```
+
+### Editor Integration
+
+Most editors automatically use `tsconfig.json`:
+
+- **VS Code**: Built-in TypeScript support
+- **WebStorm**: Native TypeScript integration
+- **Sublime Text**: Via LSP plugins
+
+## Astro-Specific Type Features
+
+### Content Collections
+
+Type-safe content queries:
+
+```typescript
+import { getCollection } from 'astro:content';
+
+// Fully typed based on your schema
+const properties = await getCollection('properties');
+```
+
+### Component Props
+
+Define prop types in Astro components:
+
+```astro
+---
+interface Props {
+  title: string;
+  price: number;
+  bedrooms?: number;
+}
+
+const { title, price, bedrooms = 0 } = Astro.props;
+---
+
+<div>
+  <h1>{title}</h1>
+  <p>${price.toLocaleString()}</p>
+</div>
+```
+
+### Environment Variables
+
+Type-safe environment variables:
+
+```typescript
+// Define in env.d.ts
+interface ImportMetaEnv {
+  readonly PUBLIC_API_URL: string;
+}
+
+// Use with type safety
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+```
+
+## Strict Mode Benefits
+
+The strict configuration provides:
+
+### 1. Null Safety
+
+```typescript
+// Error: Object is possibly 'null'
+const element = document.querySelector('.property');
+element.textContent = 'New Title'; // ❌
+
+// Correct: Null check required
+if (element) {
+  element.textContent = 'New Title'; // ✅
+}
+```
+
+### 2. Type Inference
+
+```typescript
+// Inferred as string
+const title = 'Luxury Villa';
+
+// Error: Type 'number' is not assignable to type 'string'
+title = 123; // ❌
+```
+
+### 3. Function Safety
+
+```typescript
+function formatPrice(price: number): string {
+  return `$${price.toLocaleString()}`;
+}
+
+formatPrice(500000); // ✅
+formatPrice('500000'); // ❌ Argument of type 'string' is not assignable
+```
+
+## Customization Options
+
+While the current config is minimal, you can extend it:
+
+### Add Path Mappings
+
+```json
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@utils/*": ["src/utils/*"]
+    }
+  }
+}
+```
+
+Then import with aliases:
+
+```typescript
+import Header from '@components/Header.astro';
+import { formatPrice } from '@utils/format';
+```
+
+### Additional Strict Checks
+
+```json
+{
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true
+  }
+}
+```
+
+## Related Configuration
+
+- [Astro Configuration](/reference/astro-config) - Build and server settings
+- [CSS Variables](/reference/css-variables) - Styling configuration
+- [Package Dependencies](/reference/dependencies) - npm packages and versions
+
+## Best Practices
+
+1. **Use strict mode**: Helps catch bugs early in development
+2. **Define prop interfaces**: Always type component props
+3. **Avoid 'any' types**: Use specific types or 'unknown' instead
+4. **Check before deployment**: Run `astro check` in CI/CD pipeline
+5. **Keep types updated**: Regenerate `.astro/types.d.ts` when content changes
+
+## Troubleshooting
+
+### Types not updating
+
+**Solution:** Restart the dev server to regenerate type definitions:
+
+```bash
+npm run dev
+```
+
+### Editor not recognizing Astro types
+
+**Solution:** Install the Astro VS Code extension:
+
+```bash
+code --install-extension astro-build.astro-vscode
+```
+
+### Type errors in .astro files
+
+**Solution:** Ensure `.astro` files are in the `src` directory and the dev server is running to generate types.

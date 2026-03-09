@@ -1,0 +1,280 @@
+---
+title: Property Interface
+description: Complete type definition for real estate properties in Adosa
+---
+
+The `Property` interface defines the complete structure for real estate listings in the Adosa platform. It integrates with the EGO Real Estate CRM system.
+
+## Type Definition
+
+```typescript
+export interface Property {
+  id: string;
+  egoId: number;
+  title: string;
+  location: string;
+  status: "DESTACADO" | "";
+  type: "Apartamento" | "Casa" | "Terreno" | "Parcela" | "Local Comercial" | "Ático";
+  bedrooms: number;
+  bathrooms: number;
+  size: number;
+  land_size: number;
+  price?: string;
+  filterLocation?: string;
+  image: string;
+
+  // Detailed Fields (CRM Mapping)
+  price_long?: number;
+  garage?: boolean;
+  pool?: boolean;
+  built_m2?: number;
+  plot_m2?: number;
+  description?: string;
+  description_en?: string;
+  description_full?: string;
+  description_full_en?: string;
+  province?: string;
+  province_en?: string;
+  municipality?: string;
+  municipality_en?: string;
+  neighborhood?: string;
+  neighborhood_en?: string;
+  conservation_status?: string;
+  conservation_status_en?: string;
+  energy_rating?: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  ibi?: number;
+  community_fees?: number;
+  reference?: string;
+  floor_plans?: string[];
+  coords?: [number, number];
+  images?: string[];
+}
+```
+
+## Core Fields
+
+These fields are required for every property listing.
+
+<ParamField path="id" type="string" required>
+  Internal ID or CRM Reference (human-readable identifier)
+</ParamField>
+
+<ParamField path="egoId" type="number" required>
+  Mandatory numeric ID for CRM linking (RID). This is the primary identifier used by the EGO Real Estate CRM system.
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Property listing title
+</ParamField>
+
+<ParamField path="location" type="string" required>
+  Location description like "Marbella" or "Costa del Sol"
+</ParamField>
+
+<ParamField path="status" type="'DESTACADO' | ''" required>
+  Property status. Use `"DESTACADO"` for featured properties or empty string for regular listings.
+</ParamField>
+
+<ParamField path="type" type="string" required>
+  Property type. One of:
+  - `"Apartamento"` - Apartment
+  - `"Casa"` - House
+  - `"Terreno"` - Land
+  - `"Parcela"` - Plot
+  - `"Local Comercial"` - Commercial property
+  - `"Ático"` - Penthouse
+</ParamField>
+
+<ParamField path="bedrooms" type="number" required>
+  Number of bedrooms
+</ParamField>
+
+<ParamField path="bathrooms" type="number" required>
+  Number of bathrooms
+</ParamField>
+
+<ParamField path="size" type="number" required>
+  Property size in square meters (m²)
+</ParamField>
+
+<ParamField path="land_size" type="number" required>
+  Land/plot size in square meters (m²)
+</ParamField>
+
+<ParamField path="image" type="string" required>
+  Image URL for grid preview display
+</ParamField>
+
+## Optional Display Fields
+
+<ParamField path="price" type="string">
+  Formatted price string for display (e.g., "€450,000")
+</ParamField>
+
+<ParamField path="filterLocation" type="string">
+  Used for grouping multiple localities into a single filter option in the property grid
+</ParamField>
+
+## Detailed CRM Fields
+
+These optional fields are mapped from the EGO Real Estate CRM system.
+
+<ParamField path="price_long" type="number">
+  Numeric price value for calculations and sorting
+</ParamField>
+
+<ParamField path="garage" type="boolean">
+  Whether the property includes a garage
+</ParamField>
+
+<ParamField path="pool" type="boolean">
+  Whether the property includes a swimming pool
+</ParamField>
+
+<ParamField path="built_m2" type="number">
+  Built area in square meters
+</ParamField>
+
+<ParamField path="plot_m2" type="number">
+  Plot area in square meters
+</ParamField>
+
+## Multilingual Fields
+
+Description and location fields support both Spanish (default) and English translations.
+
+<ParamField path="description" type="string">
+  Short introduction in Spanish
+</ParamField>
+
+<ParamField path="description_en" type="string">
+  Short introduction in English
+</ParamField>
+
+<ParamField path="description_full" type="string">
+  Full narrative description in Spanish
+</ParamField>
+
+<ParamField path="description_full_en" type="string">
+  Full narrative description in English
+</ParamField>
+
+<ParamField path="province" type="string">
+  Province name in Spanish
+</ParamField>
+
+<ParamField path="province_en" type="string">
+  Province name in English
+</ParamField>
+
+<ParamField path="municipality" type="string">
+  Municipality name in Spanish
+</ParamField>
+
+<ParamField path="municipality_en" type="string">
+  Municipality name in English
+</ParamField>
+
+<ParamField path="neighborhood" type="string">
+  Neighborhood name in Spanish
+</ParamField>
+
+<ParamField path="neighborhood_en" type="string">
+  Neighborhood name in English
+</ParamField>
+
+<ParamField path="conservation_status" type="string">
+  Conservation/condition status in Spanish
+</ParamField>
+
+<ParamField path="conservation_status_en" type="string">
+  Conservation/condition status in English
+</ParamField>
+
+## Additional Details
+
+<ParamField path="energy_rating" type="string">
+  Energy efficiency rating. One of: `"A"`, `"B"`, `"C"`, `"D"`, `"E"`, `"F"`, `"G"`
+</ParamField>
+
+<ParamField path="ibi" type="number">
+  Annual IBI (property tax) in euros
+</ParamField>
+
+<ParamField path="community_fees" type="number">
+  Monthly community fees in euros
+</ParamField>
+
+<ParamField path="reference" type="string">
+  Property reference code
+</ParamField>
+
+## Media & Location
+
+<ParamField path="floor_plans" type="string[]">
+  Array of floor plan image URLs
+</ParamField>
+
+<ParamField path="coords" type="[number, number]">
+  GPS coordinates as `[latitude, longitude]` tuple for map display
+</ParamField>
+
+<ParamField path="images" type="string[]">
+  Array of gallery image URLs for the property detail page
+</ParamField>
+
+## ID Fields Explained
+
+The Property interface uses two different ID fields:
+
+### `id` vs `egoId`
+
+- **`id`**: Human-readable identifier, can be a string like `"property-123"` or a CRM reference. Used for internal routing and display.
+- **`egoId`**: Mandatory numeric identifier (RID) required by the EGO Real Estate CRM system for linking and synchronization. This is the authoritative ID for CRM operations.
+
+## Example Property Object
+
+```typescript
+const exampleProperty: Property = {
+  id: "villa-marbella-001",
+  egoId: 12345,
+  title: "Luxury Villa in Marbella",
+  location: "Marbella",
+  status: "DESTACADO",
+  type: "Casa",
+  bedrooms: 4,
+  bathrooms: 3,
+  size: 250,
+  land_size: 800,
+  price: "€1,200,000",
+  filterLocation: "Costa del Sol",
+  image: "/images/properties/villa-001.jpg",
+  
+  // Detailed fields
+  price_long: 1200000,
+  garage: true,
+  pool: true,
+  built_m2: 250,
+  plot_m2: 800,
+  description: "Villa de lujo con vistas al mar",
+  description_en: "Luxury villa with sea views",
+  province: "Málaga",
+  province_en: "Malaga",
+  municipality: "Marbella",
+  municipality_en: "Marbella",
+  energy_rating: "B",
+  ibi: 1500,
+  community_fees: 200,
+  reference: "VLM-001",
+  coords: [36.5097, -4.8822],
+  images: [
+    "/images/properties/villa-001-1.jpg",
+    "/images/properties/villa-001-2.jpg",
+    "/images/properties/villa-001-3.jpg"
+  ]
+};
+```
+
+## Source Location
+
+`src/data/properties.ts:1-41`

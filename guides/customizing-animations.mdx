@@ -1,0 +1,675 @@
+---
+title: 'Customizing Animations'
+description: 'Modify GSAP animations, create scroll effects, and optimize performance'
+---
+
+## Animation Architecture
+
+The Adosa project uses:
+- **GSAP 3.14.2** - Industry-standard animation library
+- **ScrollTrigger** - Scroll-based animation triggers
+- **Lenis 1.3.16** - Smooth scrolling (desktop only)
+
+All animations are coordinated through the `page-ready` event to ensure proper timing after page load.
+
+## Text Reveal Animation
+
+The `textRevealAnimation()` utility creates elegant swipe-up text reveals.
+
+**Location:** `src/utils/textRevealAnimation.ts`
+
+### Basic Usage
+
+```astro
+<div class="content-section">
+  <h2 class="text-reveal">Heading appears first</h2>
+  <p class="text-reveal">Paragraph follows with stagger</p>
+  <p class="text-reveal">Another paragraph</p>
+</div>
+
+<script>
+  import { initTextRevealAnimation } from '../utils/textRevealAnimation';
+  
+  window.addEventListener('page-ready', () => {
+    initTextRevealAnimation('.content-section');
+  });
+</script>
+```
+
+### Configuration Options
+
+```typescript
+export interface TextRevealOptions {
+  selector?: string;    // Element selector (default: ".text-reveal")
+  stagger?: number;     // Delay between elements (default: 0.15s)
+  start?: string;       // ScrollTrigger start (default: "top 85%")
+  duration?: number;    // Animation duration (default: 1.2s)
+}
+```
+
+**Example with custom options:**
+
+```javascript
+initTextRevealAnimation('.hero-section', {
+  selector: '.animate-text',
+  stagger: 0.2,
+  start: 'top 80%',
+  duration: 1.5
+});
+```
+
+### How It Works
+
+```typescript
+// From src/utils/textRevealAnimation.ts:26-55
+export function initTextRevealAnimation(
+  containerSelector: string,
+  options: TextRevealOptions = {}
+) {
+  const {
+    selector = ".text-reveal",
+    stagger = 0.15,
+    start = "top 85%",
+    duration = 1.2,
+  } = options;
+
+  const elements = document.querySelectorAll(
+    `${containerSelector} ${selector}`
+  );
+
+  elements.forEach((element, index) => {
+    gsap.to(element, {
+      y: 0,                    // Slide up from below
+      opacity: 1,              // Fade in
+      duration,
+      ease: "power3.out",      // Smooth easing
+      scrollTrigger: {
+        trigger: element,
+        start,                 // When to trigger
+        toggleActions: "play none none reverse",  // Play forward, reverse on scroll up
+      },
+      delay: index * stagger,  // Stagger effect
+    });
+  });
+}
+```
+
+<Tip>
+  Elements with `.text-reveal` class should have initial CSS state:
+  ```css
+  .text-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  ```
+  This is typically defined in `src/styles/animations.css`.
+</Tip>
+
+## Text Swipe Animation
+
+The `textSwipeAnimation()` utility provides coordinated animations with custom delays.
+
+**Location:** `src/utils/textSwipeAnimation.ts`
+
+### Basic Usage
+
+```astro
+<section class="about-section">
+  <h2 class="text-swipe">About Us</h2>
+  <p class="text-swipe" data-delay="0.2">First paragraph</p>
+  <p class="text-swipe" data-delay="0.4">Second paragraph</p>
+</section>
+
+<script>
+  import { createTextSwipeAnimation } from '../utils/textSwipeAnimation';
+  
+  window.addEventListener('page-ready', () => {
+    const section = document.querySelector('.about-section');
+    if (section) {
+      createTextSwipeAnimation('.about-section .text-swipe', section);
+    }
+  });
+</script>
+```
+
+### Custom Delays
+
+Use `data-delay` attribute for precise timing:
+
+```html
+<h1 class="text-swipe" data-delay="0">Immediate</h1>
+<p class="text-swipe" data-delay="0.3">Starts at 0.3s</p>
+<p class="text-swipe" data-delay="0.6">Starts at 0.6s</p>
+```
+
+Without `data-delay`, elements use automatic stagger (index × 0.15s).
+
+### How It Works
+
+```typescript
+// From src/utils/textSwipeAnimation.ts:14-50
+export function createTextSwipeAnimation(
+  selector: string,
+  sectionTrigger: Element
+): ScrollTrigger | undefined {
+  const elements = document.querySelectorAll(selector);
+  if (elements.length === 0) return undefined;
+
+  // Use a timeline to orchestrate all animations together
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: sectionTrigger,
+      start: "top 50%",                           // Trigger when section is 50% in view
+      toggleActions: "play none none reverse",    // Reversible animation
+    }
+  });
+
+  elements.forEach((element, index) => {
+    const el = element as HTMLElement;
+    const customDelay = el.dataset.delay 
+      ? parseFloat(el.dataset.delay) 
+      : null;
+
+    // Use custom delay if provided, otherwise use stagger
+    const startTime = customDelay !== null 
+      ? customDelay 
+      : index * 0.15;
+
+    tl.to(element, {
+      y: 0,
+      opacity: 1,
+      duration: 1.2,
+      ease: "power3.out"
+    }, startTime);  // Position in timeline
+  });
+
+  return tl.scrollTrigger;
+}
+```
+
+<Info>
+  The key difference: `textSwipeAnimation` uses a **timeline** for coordinated control, while `textRevealAnimation` uses individual tweens. Use timeline when you need precise control over sequencing.
+</Info>
+
+## Creating New ScrollTrigger Effects
+
+### Fade-In Effect
+
+```astro
+<div class="fade-section">
+  <div class="fade-item">Content 1</div>
+  <div class="fade-item">Content 2</div>
+</div>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  
+  gsap.registerPlugin(ScrollTrigger);
+  
+  window.addEventListener('page-ready', () => {
+    gsap.utils.toArray('.fade-item').forEach((item: any) => {
+      gsap.from(item, {
+        opacity: 0,
+        y: 50,
+        duration: 1,
+        scrollTrigger: {
+          trigger: item,
+          start: 'top 80%',
+          toggleActions: 'play none none reverse',
+        }
+      });
+    });
+  });
+</script>
+```
+
+### Parallax Scrolling
+
+```astro
+<div class="parallax-section">
+  <img src="/image.jpg" class="parallax-image" alt="Background" />
+  <div class="parallax-content">
+    <h2>Parallax Content</h2>
+  </div>
+</div>
+
+<style>
+  .parallax-section {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .parallax-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 120%;  /* Extra height for parallax */
+    object-fit: cover;
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  
+  gsap.registerPlugin(ScrollTrigger);
+  
+  window.addEventListener('page-ready', () => {
+    gsap.to('.parallax-image', {
+      yPercent: 20,  // Move down 20%
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '.parallax-section',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,  // Smooth scrubbing
+      }
+    });
+  });
+</script>
+```
+
+### Scale on Scroll
+
+```astro
+<div class="scale-section">
+  <div class="scale-box">Scales up on scroll</div>
+</div>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  
+  gsap.registerPlugin(ScrollTrigger);
+  
+  window.addEventListener('page-ready', () => {
+    gsap.from('.scale-box', {
+      scale: 0.8,
+      opacity: 0,
+      duration: 1,
+      scrollTrigger: {
+        trigger: '.scale-box',
+        start: 'top 75%',
+        end: 'top 25%',
+        scrub: 1,  // Scrub with 1 second lag
+      }
+    });
+  });
+</script>
+```
+
+## Adjusting Lenis Scroll Configuration
+
+Lenis provides buttery-smooth scrolling on desktop (disabled on mobile for native touch scrolling).
+
+**Location:** `src/layouts/BaseLayout.astro:74-108`
+
+### Current Configuration
+
+```javascript
+const lenis = new Lenis({
+  duration: 0,              // Zero inertia (stops instantly)
+  easing: (t) => t,         // Linear easing
+  orientation: "vertical",
+  gestureOrientation: "vertical",
+  smoothWheel: true,
+  wheelMultiplier: 0.5,     // Halved scroll speed (premium feel)
+});
+```
+
+### Customizing Scroll Behavior
+
+<AccordionGroup>
+  <Accordion title="Smooth Inertia Scrolling">
+    For momentum-based scrolling (like macOS):
+    
+    ```javascript
+    const lenis = new Lenis({
+      duration: 1.2,           // 1.2 second smooth stop
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 1,      // Normal speed
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Faster Scroll Speed">
+    Increase `wheelMultiplier` for faster scrolling:
+    
+    ```javascript
+    wheelMultiplier: 1.2,  // 20% faster
+    ```
+  </Accordion>
+  
+  <Accordion title="Disable on Specific Elements">
+    Prevent Lenis on certain elements:
+    
+    ```html
+    <div data-lenis-prevent>
+      <!-- Native scroll here -->
+      <div style="overflow-y: auto; height: 300px;">
+        Long content...
+      </div>
+    </div>
+    ```
+  </Accordion>
+  
+  <Accordion title="Stop Scroll Programmatically">
+    ```javascript
+    // Stop scrolling
+    window.lenis?.stop();
+    
+    // Resume scrolling
+    window.lenis?.start();
+    
+    // Scroll to position
+    window.lenis?.scrollTo(1000);  // Scroll to 1000px
+    
+    // Scroll to element
+    window.lenis?.scrollTo('.section-id', {
+      offset: -100,        // 100px above element
+      duration: 1.5,       // 1.5s animation
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Lenis is **only enabled on desktop** (>1024px). Mobile/tablet use native scroll for superior touch performance. See `src/layouts/BaseLayout.astro:85-108`.
+</Warning>
+
+## Animation Performance Tips
+
+### 1. Use `will-change` Strategically
+
+Optimize elements that will animate:
+
+```css
+.animated-element {
+  will-change: transform, opacity;
+}
+
+/* Remove after animation */
+.animated-element.animation-complete {
+  will-change: auto;
+}
+```
+
+<Warning>
+  Don't overuse `will-change`. It reserves GPU memory. Only use on elements that will definitely animate.
+</Warning>
+
+### 2. Animate Transform and Opacity
+
+These properties are GPU-accelerated:
+
+```javascript
+// ✅ Good (GPU accelerated)
+gsap.to(element, {
+  x: 100,           // transform: translateX()
+  y: 50,            // transform: translateY()
+  scale: 1.2,       // transform: scale()
+  opacity: 0.5,
+});
+
+// ❌ Avoid (triggers layout recalculation)
+gsap.to(element, {
+  width: '100px',
+  height: '200px',
+  top: '50px',
+});
+```
+
+### 3. Use `ease` Appropriately
+
+```javascript
+// Smooth natural motion
+ease: "power3.out"
+
+// Bouncy effect
+ease: "elastic.out(1, 0.5)"
+
+// Sharp start, smooth end
+ease: "power4.inOut"
+
+// Linear (for scrub animations)
+ease: "none"
+```
+
+### 4. Batch ScrollTrigger Updates
+
+```javascript
+// ✅ Good: Create all ScrollTriggers together
+window.addEventListener('page-ready', () => {
+  ScrollTrigger.batch('.animate-item', {
+    onEnter: (elements) => {
+      gsap.to(elements, {
+        opacity: 1,
+        y: 0,
+        stagger: 0.1
+      });
+    },
+    start: 'top 80%',
+  });
+});
+
+// ❌ Avoid: Creating ScrollTriggers in a loop
+elements.forEach((el) => {
+  gsap.to(el, {
+    scrollTrigger: { trigger: el },
+    opacity: 1
+  });
+});
+```
+
+### 5. Refresh ScrollTrigger on Layout Changes
+
+```javascript
+// After dynamic content loads
+ScrollTrigger.refresh();
+
+// After window resize (debounced)
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    ScrollTrigger.refresh();
+  }, 250);
+});
+```
+
+### 6. Lazy Load Animations
+
+Defer animations for off-screen content:
+
+```javascript
+window.addEventListener('page-ready', () => {
+  // Only animate elements currently in viewport
+  ScrollTrigger.batch('.lazy-animate', {
+    once: true,  // Only animate once
+    onEnter: (elements) => {
+      gsap.to(elements, { opacity: 1, y: 0 });
+    }
+  });
+});
+```
+
+## Debugging Animations
+
+### ScrollTrigger Markers
+
+Visualize trigger points during development:
+
+```javascript
+gsap.to('.element', {
+  scrollTrigger: {
+    trigger: '.element',
+    start: 'top 80%',
+    markers: true,  // Show visual markers
+  },
+  opacity: 1
+});
+```
+
+Markers show:
+- **Green**: `start` position
+- **Red**: `end` position
+- **Purple**: Element position
+
+<Warning>
+  Remove `markers: true` in production.
+</Warning>
+
+### Check ScrollTrigger State
+
+```javascript
+// Get all ScrollTriggers
+console.log(ScrollTrigger.getAll());
+
+// Disable all ScrollTriggers
+ScrollTrigger.getAll().forEach(st => st.disable());
+
+// Enable all ScrollTriggers
+ScrollTrigger.getAll().forEach(st => st.enable());
+
+// Kill specific ScrollTrigger
+const st = ScrollTrigger.getById('my-trigger-id');
+st?.kill();
+```
+
+### Performance Monitoring
+
+```javascript
+// Monitor GSAP ticker performance
+gsap.ticker.add(() => {
+  console.log('FPS:', gsap.ticker.fps);
+});
+
+// Log ScrollTrigger calculations
+ScrollTrigger.addEventListener('refresh', () => {
+  console.log('ScrollTrigger refreshed');
+});
+```
+
+## Common Animation Patterns
+
+### Staggered Grid Animation
+
+```astro
+<div class="grid">
+  <div class="grid-item">1</div>
+  <div class="grid-item">2</div>
+  <div class="grid-item">3</div>
+  <div class="grid-item">4</div>
+</div>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  
+  gsap.registerPlugin(ScrollTrigger);
+  
+  window.addEventListener('page-ready', () => {
+    gsap.from('.grid-item', {
+      opacity: 0,
+      y: 50,
+      stagger: 0.1,  // 0.1s between each item
+      duration: 0.8,
+      scrollTrigger: {
+        trigger: '.grid',
+        start: 'top 75%',
+      }
+    });
+  });
+</script>
+```
+
+### Scroll Progress Indicator
+
+```astro
+<div class="progress-bar"></div>
+
+<style>
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: #1A1A1A;
+    width: 0;
+    z-index: 9999;
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  
+  gsap.registerPlugin(ScrollTrigger);
+  
+  window.addEventListener('page-ready', () => {
+    gsap.to('.progress-bar', {
+      width: '100%',
+      ease: 'none',
+      scrollTrigger: {
+        trigger: 'body',
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 0.3,
+      }
+    });
+  });
+</script>
+```
+
+### Pinned Section
+
+```astro
+<section class="pinned-section">
+  <h2>This section stays pinned</h2>
+</section>
+
+<section class="spacer" style="height: 200vh;">
+  <!-- Content below -->
+</section>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  
+  gsap.registerPlugin(ScrollTrigger);
+  
+  window.addEventListener('page-ready', () => {
+    ScrollTrigger.create({
+      trigger: '.pinned-section',
+      start: 'top top',
+      end: '+=100%',
+      pin: true,
+      pinSpacing: true,
+    });
+  });
+</script>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Development" icon="laptop-code" href="/guides/local-development">
+    Set up your development environment
+  </Card>
+  
+  <Card title="Adding Components" icon="puzzle-piece" href="/guides/adding-components">
+    Create animated components
+  </Card>
+  
+  <Card title="GSAP Documentation" icon="book" href="https://greensock.com/docs/">
+    Official GSAP documentation
+  </Card>
+  
+  <Card title="ScrollTrigger Demos" icon="play" href="https://greensock.com/st-demos/">
+    Interactive ScrollTrigger examples
+  </Card>
+</CardGroup>

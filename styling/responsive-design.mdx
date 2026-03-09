@@ -1,0 +1,470 @@
+---
+title: 'Responsive Design'
+description: 'Mobile-first responsive design system with breakpoints, grid utilities, and adaptive layouts'
+icon: 'mobile'
+---
+
+The Adosa Real Estate website uses a mobile-first responsive design approach with fluid typography, responsive grids, and adaptive layouts that work seamlessly across all devices.
+
+## Breakpoints
+
+The primary breakpoint is **768px**, distinguishing mobile/tablet from desktop experiences:
+
+```css theme.css
+@media (max-width: 768px) {
+  /* Mobile/tablet styles */
+}
+```
+
+For Lenis smooth scrolling, a desktop-specific breakpoint is used:
+
+```javascript BaseLayout.astro
+const isDesktop = window.matchMedia("(min-width: 1025px)").matches;
+```
+
+### Breakpoint Reference
+
+| Breakpoint | Width | Usage |
+|------------|-------|-------|
+| Mobile | 0-768px | Mobile and tablet devices |
+| Desktop | 769px+ | Desktop and large screens |
+| Large Desktop | 1025px+ | Lenis smooth scroll enabled |
+
+## Mobile-First Approach
+
+The design system is built mobile-first, meaning base styles target mobile devices and media queries enhance the experience for larger screens:
+
+```css
+/* Base (mobile) styles */
+.container {
+  padding: 0 1.5rem;
+}
+
+/* Desktop enhancement */
+@media (min-width: 769px) {
+  .container {
+    padding: 0 4rem;
+  }
+}
+```
+
+<Info>
+  Mobile-first design ensures the core experience works on all devices, with progressive enhancement for larger screens.
+</Info>
+
+## Responsive Variables
+
+CSS custom properties automatically adjust for mobile:
+
+### Layout Variables
+
+```css theme.css
+:root {
+  /* Desktop defaults */
+  --spacing-container: 4rem;
+  --height-nav: 90px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --spacing-container: 1.5rem;
+    --height-nav: 70px;
+  }
+}
+```
+
+### Typography Variables
+
+```css theme.css
+:root {
+  --font-size-h1: 4.5rem;
+  --font-size-h2: 3.5rem;
+  --font-size-h3: 2rem;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --font-size-h1: 2.8rem;
+    --font-size-h2: 2.2rem;
+    --font-size-h3: 1.5rem;
+  }
+}
+```
+
+## Fluid Typography
+
+The typography system uses `clamp()` for automatic fluid scaling:
+
+```css global.css
+h1 {
+  /* min: 2.5rem, preferred: 5vw, max: 4.5rem */
+  font-size: clamp(2.5rem, 5vw, var(--font-size-h1));
+}
+
+h2 {
+  font-size: clamp(2rem, 4vw, var(--font-size-h2));
+}
+
+h3 {
+  font-size: clamp(1.5rem, 3vw, var(--font-size-h3));
+}
+```
+
+<Tip>
+  Using `clamp()` eliminates the need for media queries in typography—it scales automatically based on viewport width.
+</Tip>
+
+## Grid System
+
+Flexible grid system with automatic responsive behavior:
+
+### Grid Base
+
+```css global.css
+.grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+```
+
+### Grid Variants
+
+```css global.css
+/* 2-column grid */
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* 3-column grid */
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* 4-column grid */
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+```
+
+### Mobile Grid Behavior
+
+Grids automatically collapse to single column on mobile:
+
+```css global.css
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+### Grid Usage Example
+
+```astro
+<!-- Desktop: 3 columns, Mobile: 1 column -->
+<div class="grid grid-3">
+  <div class="card">Property 1</div>
+  <div class="card">Property 2</div>
+  <div class="card">Property 3</div>
+</div>
+```
+
+## Container System
+
+Max-width container with responsive padding:
+
+```css global.css
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+}
+```
+
+## Responsive Utilities
+
+### Section Padding
+
+```css global.css
+.section {
+  padding: var(--spacing-xl) 0;
+}
+
+.section-fullscreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) 0;
+}
+```
+
+### Content Padding (Mobile)
+
+```css global.css
+@media (max-width: 768px) {
+  .content-inner,
+  .content-box {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+}
+```
+
+## Responsive Images
+
+Images are responsive by default:
+
+```css global.css
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+```
+
+### Image Container Example
+
+```astro
+<div class="image-wrapper">
+  <img 
+    src="/property.jpg" 
+    alt="Luxury property"
+    loading="lazy"
+  />
+</div>
+```
+
+## Responsive Navigation
+
+Navigation height adjusts for mobile:
+
+```css theme.css
+:root {
+  --height-nav: 90px; /* Desktop */
+}
+
+@media (max-width: 768px) {
+  :root {
+    --height-nav: 70px; /* Mobile */
+  }
+}
+```
+
+## Button Adjustments
+
+Buttons are smaller on mobile:
+
+```css global.css
+.btn {
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .btn {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.85rem;
+  }
+}
+```
+
+## Scroll Behavior
+
+### Desktop: Lenis Smooth Scroll
+
+```javascript BaseLayout.astro
+const isDesktop = window.matchMedia("(min-width: 1025px)").matches;
+
+if (isDesktop) {
+  const lenis = new Lenis({
+    duration: 0,
+    smoothWheel: true,
+    wheelMultiplier: 0.5,
+  });
+  
+  window.lenis = lenis;
+}
+```
+
+### Mobile: Native Touch Scroll
+
+<Warning>
+  Lenis is **disabled on mobile/tablet** to preserve native touch scrolling behavior. Always test scroll interactions on real mobile devices.
+</Warning>
+
+## Responsive Animation Considerations
+
+### Parallax Adjustments
+
+Parallax effects should be tested on mobile:
+
+```typescript
+const isDesktop = window.matchMedia("(min-width: 1025px)").matches;
+
+if (isDesktop) {
+  // Apply parallax only on desktop
+  initParallaxEffects();
+}
+```
+
+### Animation Delays
+
+Consider reducing animation delays on mobile:
+
+```typescript
+const staggerDelay = window.innerWidth < 768 ? 0.1 : 0.15;
+
+gsap.to(elements, {
+  stagger: staggerDelay,
+  // ...
+});
+```
+
+## Common Responsive Patterns
+
+### Two-Column to Single-Column Layout
+
+```astro
+<div class="grid grid-2">
+  <div class="column">
+    <h2>Left Content</h2>
+  </div>
+  <div class="column">
+    <h2>Right Content</h2>
+  </div>
+</div>
+```
+
+### Hero Section with Responsive Text
+
+```astro
+<section class="hero section-fullscreen">
+  <div class="container">
+    <h1>Luxury Real Estate</h1>
+    <p>Premium properties on the Costa del Sol</p>
+  </div>
+</section>
+```
+
+### Card Grid
+
+```astro
+<div class="container">
+  <div class="grid grid-3 stagger-group">
+    <div class="card">Card 1</div>
+    <div class="card">Card 2</div>
+    <div class="card">Card 3</div>
+  </div>
+</div>
+```
+
+## Testing Responsive Designs
+
+### Browser DevTools
+
+1. Open Chrome/Firefox DevTools
+2. Toggle device toolbar (Cmd/Ctrl + Shift + M)
+3. Test common viewports: iPhone 12/13, iPad, Desktop
+
+### Real Device Testing
+
+<Warning>
+  **Critical:** Always test on real mobile devices. Browser DevTools don't accurately simulate:
+  - Touch scroll behavior
+  - Lenis smooth scroll conflicts
+  - Performance on lower-end devices
+  - Actual font rendering
+</Warning>
+
+### Key Viewports to Test
+
+| Device | Width | Notes |
+|--------|-------|-------|
+| iPhone SE | 375px | Small mobile |
+| iPhone 12/13 | 390px | Standard mobile |
+| iPad | 768px | Tablet (breakpoint) |
+| iPad Pro | 1024px | Large tablet |
+| Desktop | 1440px | Standard desktop |
+| Large Desktop | 1920px+ | Max content width |
+
+## Print Styles
+
+The system includes comprehensive print styles for property sheets:
+
+```css global.css
+@media print {
+  @page {
+    margin: 1.5cm !important;
+    size: auto;
+  }
+  
+  /* Hide web-only elements */
+  .navigation,
+  .footer,
+  .floating-dock,
+  #transition-overlay {
+    display: none !important;
+  }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Test on real devices">
+    Browser DevTools are useful but don't replicate real device behavior. Always test critical features on actual mobile devices.
+  </Accordion>
+  
+  <Accordion title="Use CSS variables for breakpoints">
+    Leverage responsive CSS variables (like `--spacing-container`) instead of hardcoding values in media queries.
+  </Accordion>
+  
+  <Accordion title="Embrace fluid typography">
+    Use `clamp()` for typography to reduce media query complexity and create smoother scaling.
+  </Accordion>
+  
+  <Accordion title="Avoid horizontal scroll">
+    Ensure `overflow-x: hidden` on the body and test all content fits within viewport width.
+  </Accordion>
+  
+  <Accordion title="Touch target sizes">
+    Ensure buttons and clickable elements are at least 44x44px on mobile for easy touch interaction.
+  </Accordion>
+  
+  <Accordion title="Performance on mobile">
+    Mobile devices have less processing power—test animation performance and consider reducing effects on mobile.
+  </Accordion>
+</AccordionGroup>
+
+## Viewport Meta Tag
+
+Ensure proper mobile rendering with the viewport meta tag in `BaseLayout.astro`:
+
+```html BaseLayout.astro
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+```
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Typography" icon="font" href="/styling/typography">
+    Fluid typography with clamp()
+  </Card>
+  <Card title="Animations" icon="wand-magic-sparkles" href="/styling/animations">
+    Mobile animation considerations
+  </Card>
+  <Card title="Theme System" icon="palette" href="/styling/theme">
+    Responsive CSS variables
+  </Card>
+</CardGroup>

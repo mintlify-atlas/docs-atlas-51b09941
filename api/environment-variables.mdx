@@ -1,0 +1,322 @@
+---
+title: "Environment Variables"
+description: "Complete guide to configuring environment variables for the eGO Real Estate API integration"
+---
+
+## Overview
+
+The Adosa Real Estate website requires environment variables to authenticate with the eGO Real Estate API. Understanding the difference between build-time and runtime variables in Astro is critical for proper configuration.
+
+## Required Environment Variables
+
+### PUBLIC_EGO_API_TOKEN
+
+The API authentication token for accessing the eGO Real Estate API.
+
+<ParamField path="PUBLIC_EGO_API_TOKEN" type="string" required>
+  Authentication token for the eGO Real Estate API. Must be prefixed with `PUBLIC_` to be accessible in client-side code.
+</ParamField>
+
+**Usage location**: `src/services/api/api.ts:3`
+
+```typescript
+const API_TOKEN = import.meta.env.PUBLIC_EGO_API_TOKEN;
+```
+
+## .env File Structure
+
+Create a `.env` file in the project root:
+
+```bash
+# eGO Real Estate API Configuration
+PUBLIC_EGO_API_TOKEN=your_api_token_here
+```
+
+### Example .env File
+
+```bash
+# .env
+PUBLIC_EGO_API_TOKEN=u2fW9rOg0Oz5rPGVh+7wowfgDt4IiCugRCFDrohuR3vJzZIwRzFzgfdM3YDqDuN5
+```
+
+<Warning>
+  Never commit the `.env` file to version control. Add it to `.gitignore` to prevent accidental exposure of API credentials.
+</Warning>
+
+## Astro Environment Variables
+
+Astro has specific rules for environment variables that differ from other frameworks.
+
+### Build-Time vs Runtime
+
+**All Astro environment variables are resolved at BUILD TIME**, not runtime. This means:
+
+- Variables are read when you run `npm run build`
+- They are embedded into the compiled JavaScript bundles
+- Changing `.env` after build requires a rebuild
+- No environment variables are loaded at runtime in production
+
+```typescript
+// This is evaluated at BUILD TIME
+const API_TOKEN = import.meta.env.PUBLIC_EGO_API_TOKEN;
+
+// The compiled output will look like:
+const API_TOKEN = "u2fW9rOg0Oz5rPGVh+7wowfgDt4IiCugRCFDrohuR3vJzZIwRzFzgfdM3YDqDuN5";
+```
+
+### PUBLIC_ Prefix Requirement
+
+Astro requires the `PUBLIC_` prefix for client-side environment variables:
+
+| Prefix | Accessible In | Use Case |
+|--------|---------------|----------|
+| `PUBLIC_` | Client + Server | API tokens, public configuration |
+| No prefix | Server only | Database credentials, secrets |
+
+**Why PUBLIC_ is needed**: The eGO API token is used in client-side code (`ApiCore` is imported by components that run in the browser). Without `PUBLIC_`, the variable would be `undefined`.
+
+```typescript
+// ✅ Correct - accessible in browser
+import.meta.env.PUBLIC_EGO_API_TOKEN
+
+// ❌ Wrong - only available in server-side code
+import.meta.env.EGO_API_TOKEN
+```
+
+## Configuration in Different Environments
+
+### Local Development
+
+1. Create `.env` file in project root:
+```bash
+PUBLIC_EGO_API_TOKEN=your_dev_token
+```
+
+2. Start dev server:
+```bash
+npm run dev
+```
+
+Astro automatically loads `.env` in development mode.
+
+### Production Build
+
+1. Set environment variable before building:
+```bash
+export PUBLIC_EGO_API_TOKEN=your_prod_token
+npm run build
+```
+
+2. Or create `.env.production`:
+```bash
+# .env.production
+PUBLIC_EGO_API_TOKEN=your_prod_token
+```
+
+Then build:
+```bash
+npm run build
+```
+
+### CI/CD (GitHub Actions, GitLab CI)
+
+Set environment variables in your CI/CD platform's secrets management:
+
+**GitHub Actions**:
+```yaml
+name: Deploy
+on: [push]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+          PUBLIC_EGO_API_TOKEN: ${{ secrets.PUBLIC_EGO_API_TOKEN }}
+        run: npm run build
+```
+
+**GitLab CI**:
+```yaml
+build:
+  script:
+    - npm run build
+  variables:
+    PUBLIC_EGO_API_TOKEN: $PUBLIC_EGO_API_TOKEN
+```
+
+### Vercel / Netlify
+
+1. Go to project settings → Environment Variables
+2. Add variable:
+   - **Key**: `PUBLIC_EGO_API_TOKEN`
+   - **Value**: `your_token_here`
+3. Redeploy site (environment variables trigger rebuild)
+
+## Security Considerations
+
+### Is PUBLIC_ Safe?
+
+The `PUBLIC_` prefix means the token is **embedded in client-side JavaScript bundles**. Anyone can inspect the source code and find it.
+
+**For the eGO API, this is acceptable because**:
+- The API is designed for public website integration
+- Rate limiting is implemented server-side by eGO
+- The token is scoped to read-only property data
+- Lead submissions go through a PHP proxy that can add server-side validation
+
+### Additional Security Measures
+
+1. **PHP Proxy for Sensitive Operations**
+   
+   The lead submission system uses `public/api/proxy.php` which keeps the actual API token server-side:
+   
+   ```php
+   // Token is hardcoded server-side, not exposed to client
+   $api_token = "u2fW9rOg0Oz5rPGVh+7wowfgDt4IiCugRCFDrohuR3vJzZIwRzFzgfdM3YDqDuN5";
+   ```
+   
+   Consider moving this to an environment variable on the server.
+
+2. **Rate Limiting**
+   
+   The `ApiCore` class includes automatic retry and rate limit handling to prevent abuse.
+
+3. **API Token Rotation**
+   
+   Periodically rotate the API token and rebuild the site:
+   ```bash
+   # Update token in .env
+   # Rebuild and redeploy
+   npm run build
+   ```
+
+4. **Domain Restrictions**
+   
+   If the eGO API supports domain restrictions, configure it to only accept requests from your production domain.
+
+## TypeScript Support
+
+Add type definitions for environment variables in `src/env.d.ts`:
+
+```typescript
+/// <reference types="astro/client" />
+
+interface ImportMetaEnv {
+  readonly PUBLIC_EGO_API_TOKEN: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+```
+
+This provides autocomplete and type checking:
+
+```typescript
+// TypeScript will error if variable is missing
+const token: string = import.meta.env.PUBLIC_EGO_API_TOKEN;
+```
+
+## Validation
+
+Validate that required environment variables are present:
+
+```typescript
+// src/services/api/api.ts
+const API_TOKEN = import.meta.env.PUBLIC_EGO_API_TOKEN;
+
+if (!API_TOKEN) {
+  throw new Error(
+    "❌ Missing PUBLIC_EGO_API_TOKEN environment variable. " +
+    "Add it to .env file in project root."
+  );
+}
+```
+
+This will fail the build if the token is missing, preventing deployment of a broken site.
+
+## Troubleshooting
+
+### Variable is undefined
+
+**Problem**: `import.meta.env.PUBLIC_EGO_API_TOKEN` returns `undefined`
+
+**Solutions**:
+1. Ensure variable name starts with `PUBLIC_`
+2. Restart dev server after adding/changing `.env`
+3. Check `.env` is in project root (same directory as `package.json`)
+4. Verify no typos in variable name
+
+### Changes not taking effect
+
+**Problem**: Updated `.env` but site still uses old value
+
+**Solution**: Environment variables are embedded at build time. Restart dev server or rebuild:
+```bash
+# Development
+npm run dev
+
+# Production
+npm run build
+```
+
+### Token exposed in JavaScript bundle
+
+**Problem**: API token visible in compiled JavaScript
+
+**Explanation**: This is expected behavior with `PUBLIC_` variables. They are meant to be publicly accessible. If this is a concern:
+1. Move sensitive operations to server-side (PHP proxy)
+2. Use API tokens with limited scope/permissions
+3. Implement server-side proxies for all API calls
+
+## Environment-Specific Configuration
+
+Manage multiple environments with separate files:
+
+```bash
+# .env.development
+PUBLIC_EGO_API_TOKEN=dev_token_here
+
+# .env.production  
+PUBLIC_EGO_API_TOKEN=prod_token_here
+
+# .env.staging
+PUBLIC_EGO_API_TOKEN=staging_token_here
+```
+
+Astro automatically loads the correct file based on the command:
+- `npm run dev` → `.env.development`
+- `npm run build` → `.env.production`
+
+## Best Practices
+
+1. **Always use .env files** - Don't hardcode API tokens in source code
+2. **Add .env to .gitignore** - Prevent committing secrets
+3. **Document required variables** - Create `.env.example` with placeholders
+4. **Validate on startup** - Throw errors if required variables are missing
+5. **Use different tokens per environment** - Separate dev/staging/production
+6. **Rotate tokens periodically** - Update and rebuild every 3-6 months
+7. **Monitor API usage** - Track requests to detect unauthorized access
+
+## .env.example Template
+
+Create this file in the repository for documentation:
+
+```bash
+# .env.example
+# Copy this file to .env and fill in your values
+
+# eGO Real Estate API Token
+# Get your token from: https://egorealestate.com/api-dashboard
+PUBLIC_EGO_API_TOKEN=your_api_token_here
+```
+
+Team members can copy this to `.env` and add their actual values.
+
+## Related Documentation
+
+- [eGO Real Estate API](/api/ego-real-estate) - API integration details
+- [Leads Management](/api/leads-management) - Lead submission system
+- [Astro Environment Variables](https://docs.astro.build/en/guides/environment-variables/) - Official Astro docs

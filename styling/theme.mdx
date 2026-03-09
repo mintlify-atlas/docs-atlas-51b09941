@@ -1,0 +1,221 @@
+---
+title: 'Theme System'
+description: 'Learn about the Adosa theme system, CSS custom properties, and color variables'
+icon: 'palette'
+---
+
+The Adosa Real Estate website uses a sophisticated theme system built on CSS custom properties that provides a premium, luxury aesthetic with support for light and dark themes.
+
+## Color System
+
+The color palette is defined in `src/styles/theme.css` and follows a numbered system (1-4) representing different semantic purposes:
+
+### Primary Colors
+
+```css theme.css
+:root {
+  /* Color 1: Background (Light Beige) */
+  --color-1: #F2F1EB;
+  
+  /* Color 2: Secondary/Muted (Medium Gray) */
+  --color-2: #AEADA5;
+  
+  /* Color 3: Accent (Gold/Ochre) */
+  --color-3: #D7AE56;
+  
+  /* Color 4: Primary Text (Dark Gray Ochre) */
+  --color-4: #53534B;
+}
+```
+
+### Usage Guidelines
+
+<CardGroup cols={2}>
+  <Card title="Color 1 - Background" icon="square">
+    Light beige background color (`#F2F1EB`) used for main page backgrounds and sections
+  </Card>
+  
+  <Card title="Color 2 - Secondary" icon="square">
+    Medium gray (`#AEADA5`) for secondary text, borders, and subtle UI elements
+  </Card>
+  
+  <Card title="Color 3 - Accent" icon="square">
+    Gold/ochre accent (`#D7AE56`) for CTAs, highlights, and premium touches
+  </Card>
+  
+  <Card title="Color 4 - Text" icon="square">
+    Dark gray ochre (`#53534B`) for primary text and headings
+  </Card>
+</CardGroup>
+
+### Special Purpose Colors
+
+```css
+:root {
+  /* Overlay and inverse text colors */
+  --color-overlay: #1a1a1a;
+  --color-text-inverse: #ffffff;
+}
+```
+
+## Dark Theme
+
+The theme system supports dark mode through a data attribute approach:
+
+```css theme.css
+[data-theme="dark"] {
+  --color-1: #1a1a1a;
+  --color-4: #F2F1EB;
+}
+```
+
+### Using Dark Theme
+
+Apply the dark theme to any section or component:
+
+```html
+<section data-theme="dark" class="hero-section">
+  <h1>Premium Properties</h1>
+  <p>Discover luxury living</p>
+</section>
+```
+
+You can also use the `.theme-dark` utility class for contextual styling:
+
+```css global.css
+.theme-dark {
+  --color-4: #f2f1eb;
+  --color-2: #ccc;
+}
+```
+
+## Typography Variables
+
+Font family variables use the Onest font family throughout:
+
+```css theme.css
+:root {
+  --font-heading: 'Onest', sans-serif;
+  --font-body: 'Onest', sans-serif;
+}
+```
+
+### Font Sizes (Desktop)
+
+```css
+:root {
+  --font-size-h1: 4.5rem;  /* 72px */
+  --font-size-h2: 3.5rem;  /* 56px */
+  --font-size-h3: 2rem;    /* 32px */
+  --font-size-p: 1.1rem;   /* 17.6px */
+  --font-size-nav: 0.9rem; /* 14.4px */
+}
+```
+
+### Responsive Font Sizes (Mobile)
+
+Font sizes automatically adjust on mobile devices:
+
+```css theme.css
+@media (max-width: 768px) {
+  :root {
+    --font-size-h1: 2.8rem;  /* 44.8px */
+    --font-size-h2: 2.2rem;  /* 35.2px */
+    --font-size-h3: 1.5rem;  /* 24px */
+  }
+}
+```
+
+## Layout Variables
+
+Spacing and layout dimensions are controlled through CSS variables:
+
+```css
+:root {
+  /* Container padding */
+  --spacing-container: 4rem;
+  
+  /* Navigation height */
+  --height-nav: 90px;
+}
+```
+
+Mobile adjustments:
+
+```css
+@media (max-width: 768px) {
+  :root {
+    --spacing-container: 1.5rem;
+    --height-nav: 70px;
+  }
+}
+```
+
+## Animation Variables
+
+Premium easing and duration values for smooth animations:
+
+```css theme.css
+:root {
+  /* Premium cubic-bezier easing */
+  --ease-premium: cubic-bezier(0.25, 1, 0.5, 1);
+  
+  /* Duration presets */
+  --duration-slow: 1.2s;
+  --duration-medium: 0.8s;
+}
+```
+
+### Usage Example
+
+```css
+.button {
+  transition: transform var(--duration-medium) var(--ease-premium);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+```
+
+## Theme Utilities
+
+Additional helper variables in `global.css`:
+
+```css global.css
+:root {
+  --border-radius: 4px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always use CSS variables">
+    Use `var(--color-3)` instead of hardcoding hex values to maintain consistency
+  </Accordion>
+  
+  <Accordion title="Respect the semantic meaning">
+    Don't use `--color-3` for text if it's meant for accents. Use the appropriate color variable for its intended purpose
+  </Accordion>
+  
+  <Accordion title="Test in both themes">
+    When creating new components, verify they work correctly in both light and dark themes
+  </Accordion>
+  
+  <Accordion title="Leverage responsive variables">
+    The system automatically adjusts for mobile—use the CSS variables instead of writing custom media queries
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Typography" icon="font" href="/styling/typography">
+    Learn about the typography system
+  </Card>
+  <Card title="Responsive Design" icon="mobile" href="/styling/responsive-design">
+    Explore responsive utilities
+  </Card>
+</CardGroup>

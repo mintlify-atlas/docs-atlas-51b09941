@@ -1,0 +1,208 @@
+---
+title: 'Astro Configuration'
+description: 'Complete reference for astro.config.mjs configuration options used in Adosa Real Estate'
+---
+
+## Overview
+
+The Astro configuration file (`astro.config.mjs`) defines build settings, server behavior, and integration options for the Adosa Real Estate website.
+
+## Complete Configuration
+
+```javascript astro.config.mjs
+import { defineConfig } from 'astro/config';
+
+// https://astro.build/config
+export default defineConfig({
+    output: 'static',
+    // Astro 5: Las rutas con 'prerender = false' funcionarán igual sin 'hybrid'
+    devToolbar: {
+        enabled: false
+    },
+    compressHTML: true,
+    vite: {
+        ssr: {
+            noExternal: ['gsap'], // GSAP debe procesarse en SSR
+        },
+    },
+});
+```
+
+## Configuration Options
+
+### output: 'static'
+
+**Type:** `'static' | 'server' | 'hybrid'`  
+**Default:** `'static'`
+
+Defines the output mode for the Astro build:
+
+- **`static`**: Generates a fully static site with pre-rendered HTML pages at build time
+- Suitable for deployment to static hosting providers (Netlify, Vercel, etc.)
+- All pages are built as static HTML files during `astro build`
+- No server-side rendering at request time
+
+**Why static for Adosa:**
+- Real estate listings are relatively static content
+- Improves performance with pre-rendered pages
+- Simplifies hosting and deployment
+- Reduces infrastructure costs
+
+<Note>
+  Astro 5 no longer requires `hybrid` mode for pages with `prerender = false`. Individual routes can handle dynamic rendering without changing the global output mode.
+</Note>
+
+### devToolbar
+
+**Type:** `{ enabled: boolean }`  
+**Default:** `{ enabled: true }`
+
+Controls the Astro Dev Toolbar visibility during development.
+
+```javascript
+devToolbar: {
+    enabled: false
+}
+```
+
+**Configuration:**
+- **`enabled: false`**: Disables the dev toolbar overlay
+- Provides a cleaner development experience
+- Removes the floating toolbar in the browser during `astro dev`
+
+**When to disable:**
+- When the toolbar interferes with UI testing
+- For client demonstrations during development
+- When working on complex overlays or animations (like GSAP)
+
+### compressHTML
+
+**Type:** `boolean`  
+**Default:** `false`
+
+Minifies HTML output during production builds.
+
+```javascript
+compressHTML: true
+```
+
+**Benefits:**
+- Reduces HTML file size by removing whitespace and comments
+- Improves page load times
+- Decreases bandwidth usage
+- Enhances Core Web Vitals scores
+
+**Impact:**
+- Smaller HTML files mean faster initial page loads
+- Particularly beneficial for property listing pages with extensive markup
+- Works alongside Vite's built-in CSS and JavaScript minification
+
+### vite.ssr Configuration
+
+**Type:** `ViteUserConfig`
+
+Configures Vite-specific options for server-side rendering.
+
+```javascript
+vite: {
+    ssr: {
+        noExternal: ['gsap']
+    }
+}
+```
+
+#### noExternal: ['gsap']
+
+**Type:** `string[] | true`  
+**Default:** `[]`
+
+**Purpose:**
+Forces GSAP (GreenSock Animation Platform) to be processed during SSR instead of being treated as an external dependency.
+
+**Why this is necessary:**
+- GSAP is an animation library used extensively in Adosa for smooth interactions
+- By default, Vite treats node_modules as external during SSR
+- GSAP needs to be bundled and processed to work correctly during the build
+- Prevents "module not found" errors during static site generation
+
+**Technical details:**
+- Ensures GSAP code is included in the SSR bundle
+- Allows GSAP imports to work in Astro components during build time
+- Required when using GSAP in components that render during SSR
+
+<Warning>
+  Without `noExternal: ['gsap']`, you may encounter build errors when GSAP is imported in components, especially during static site generation.
+</Warning>
+
+## Build Commands
+
+These configuration options apply during the following commands:
+
+```bash
+# Development server (devToolbar applies)
+npm run dev
+
+# Production build (output, compressHTML, vite.ssr apply)
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Related Configuration
+
+- [TypeScript Configuration](/reference/tsconfig) - TypeScript compiler options
+- [CSS Variables](/reference/css-variables) - Theme and styling configuration
+- [Package Dependencies](/reference/dependencies) - npm package configuration
+
+## Migration Notes
+
+### Astro 5 Changes
+
+The configuration comment mentions Astro 5 compatibility:
+
+> Astro 5: Las rutas con 'prerender = false' funcionarán igual sin 'hybrid'
+
+This means:
+- No need to use `output: 'hybrid'` mode
+- Routes with `prerender = false` work seamlessly with `output: 'static'`
+- Simplifies configuration for mixed static/dynamic routing
+
+## Best Practices
+
+1. **Keep output as static**: Unless you need server-side rendering, static mode provides the best performance
+2. **Enable compressHTML in production**: Always minify HTML for production builds
+3. **Use noExternal for problematic libraries**: Add any libraries that fail during SSR to the noExternal array
+4. **Disable devToolbar when needed**: Turn it off for clean development or demos, but enable for debugging
+
+## Troubleshooting
+
+### Build fails with GSAP imports
+
+**Solution:** Ensure GSAP is in the `noExternal` array:
+
+```javascript
+vite: {
+    ssr: {
+        noExternal: ['gsap']
+    }
+}
+```
+
+### Dev toolbar interferes with animations
+
+**Solution:** Disable it temporarily:
+
+```javascript
+devToolbar: {
+    enabled: false
+}
+```
+
+### HTML output is too large
+
+**Solution:** Enable HTML compression:
+
+```javascript
+compressHTML: true
+```

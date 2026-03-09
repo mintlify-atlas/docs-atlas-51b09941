@@ -1,0 +1,302 @@
+---
+title: Home Page
+description: The main landing page with hero section, mission statement, and team showcase
+---
+
+The home page serves as the primary landing experience for the Adosa Real Estate website, featuring a full-screen video hero, mission statements, and team member profiles.
+
+## Route
+
+- **Path**: `/` (Spanish) or `/en` (English)
+- **File**: `src/pages/[...lang]/index.astro`
+- **Type**: Static page with i18n support
+
+## Page Structure
+
+The home page implements a scroll-driven experience with multiple fullscreen sections:
+
+### 1. Hero Section
+
+Full-screen video background with animated title and CTA button.
+
+```astro title="src/pages/[...lang]/index.astro"
+<section id="home" class="section-fullscreen hero-section">
+  <div class="container hero-container">
+    <div class="hero-text-wrapper">
+      <div class="line-mask">
+        <h1 class="hero-title">{HERO_TITLE}</h1>
+        <h2 class="hero-subtitle">{HERO_SUBTITLE}</h2>
+        <a href={isEn ? "/en/propiedades" : "/propiedades"} class="cta-button">
+          <span class="cta-text">
+            {isEn ? "View Properties" : "Ver Propiedades"}
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+**Key Features:**
+- Video background via `GlobalBackground` component
+- GSAP-powered text reveal animations
+- Animated pill-shaped CTA button with clip-path reveal
+- Responsive text sizing with `clamp()`
+
+### 2. Mission Statement Sections
+
+Two fullscreen content sections with text and images:
+
+**Section 1**: Grid layout with title text and two side-by-side images
+```astro
+<section class="section-fullscreen long-section content-section bubble-wrapper">
+  <div class="container content-grid">
+    <div class="text-content">
+      <h2 class="section-title text-reveal">...</h2>
+      <h2 class="section-subtitle text-reveal">...</h2>
+    </div>
+    <div class="image-main">
+      <img src="/images/bg/marbella-plaza.jpg" class="parallax-img" />
+    </div>
+    <div class="image-secondary">
+      <img src="/images/bg/apreton-manos.jpg" class="parallax-img" />
+    </div>
+  </div>
+</section>
+```
+
+**Section 2**: Text-only section with highlighted content
+```astro
+<section class="section-fullscreen content-section bubble-wrapper">
+  <div class="text-col">
+    <h2 class="section-title text-reveal">
+      {isEn ? "We sell properties." : "Vendemos propiedades."}<br />
+      {isEn ? "But above all," : "Pero sobre todo,"}
+      <span class="highlight">
+        {isEn ? "we create lasting relationships." : "creamos relaciones duraderas."}
+      </span>
+    </h2>
+  </div>
+</section>
+```
+
+### 3. Team Section
+
+Grid of team member cards with images and contact information.
+
+```astro
+<section class="section-fullscreen team-section bubble-wrapper">
+  <div class="container">
+    <h2 class="team-header-title">
+      {isEn ? "Our Team" : "Nuestro Equipo"}
+    </h2>
+    <div class="team-grid">
+      <a href={isEn ? "/en/contacto" : "/contacto"} class="team-card">
+        <div class="team-img-wrapper">
+          <img src="/images/team/luis.jpg" alt="Luis González" />
+        </div>
+        <div class="team-info">
+          <h3>Luis González</h3>
+          <p class="role">CEO 'Adosa'</p>
+          <p class="contact">+34 637 819 500</p>
+          <p class="contact">luis@grupoadosa.com</p>
+        </div>
+      </a>
+      {/* More team members... */}
+    </div>
+  </div>
+</section>
+```
+
+## Animations
+
+The page uses extensive GSAP animations:
+
+### Hero Animation
+
+Waits for page-ready event before playing:
+
+```typescript title="src/pages/[...lang]/index.astro"
+function playHeroAnimation() {
+  const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 1.2 } });
+  tl.to(".hero-title", { y: 0, opacity: 1, delay: 0.2 });
+  tl.to(".hero-subtitle", { y: 0, opacity: 1, delay: 0.3 }, "-=0.9");
+  
+  // Pill reveal: expand from left to right via clip-path
+  tl.to(".cta-button", {
+    clipPath: "inset(0 0% 0 0)",
+    duration: 0.8,
+    ease: "power2.inOut",
+  }, "-=0.4");
+  
+  tl.to(".cta-text", { opacity: 1, duration: 0.5 }, "-=0.1");
+}
+
+if ((window as any).__pageReady) {
+  playHeroAnimation();
+} else {
+  window.addEventListener("page-ready", playHeroAnimation, { once: true });
+}
+```
+
+### Bubble Effect (Desktop Only)
+
+Sections scale up and border-radius reduces on scroll:
+
+```typescript
+const sections = document.querySelectorAll(".bubble-wrapper");
+sections.forEach((section, index) => {
+  gsap.fromTo(
+    section,
+    { scale: 0.92, borderRadius: "40px" },
+    {
+      scale: 1,
+      borderRadius: "0px",
+      duration: 1,
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: section,
+        start: "top 90%",
+        end: "center center",
+        scrub: 1,
+      },
+    }
+  );
+});
+```
+
+### Parallax Images
+
+Images move vertically at different speeds than their containers:
+
+```typescript
+const parallaxImgs = document.querySelectorAll(".parallax-img");
+parallaxImgs.forEach((img) => {
+  gsap.fromTo(
+    img,
+    { y: "-15%" },
+    {
+      y: "15%",
+      ease: "none",
+      scrollTrigger: {
+        trigger: img.parentElement,
+        start: "top bottom",
+        end: "bottom top",
+        scrub: true,
+      },
+    }
+  );
+});
+```
+
+### Text Reveal
+
+Text elements fade in and slide up using the `createTextSwipeAnimation` utility:
+
+```typescript
+const contentSections = document.querySelectorAll(".bubble-wrapper");
+contentSections.forEach((section, index) => {
+  const texts = section.querySelectorAll(".text-reveal");
+  if (texts.length > 0) {
+    section.classList.add(`reveal-section-${index}`);
+    createTextSwipeAnimation(
+      `.reveal-section-${index} .text-reveal`,
+      section
+    );
+  }
+});
+```
+
+## Internationalization
+
+The page supports Spanish (default) and English:
+
+```astro
+const { lang: langParam } = Astro.params;
+const lang = (langParam || "es") as any;
+const isEn = lang === "en";
+
+const HERO_TITLE = isEn
+  ? "Your real estate agency in San Pedro Alcántara and Marbella"
+  : "Tu inmobiliaria en San Pedro Alcántara y Marbella";
+```
+
+### Static Path Generation
+
+```astro
+export async function getStaticPaths() {
+  return i18nGetStaticPaths();
+}
+```
+
+This generates both `/` and `/en` routes.
+
+## Background Management
+
+The `GlobalBackground` component manages video and image backgrounds:
+
+```astro
+<GlobalBackground
+  heroMedia="/video/beach.mp4"
+  sectionBackgrounds={[
+    "/images/bg/puente-romano.jpg",
+    "/images/bg/concha.jpg",
+    "/images/bg/oficina.jpg",
+  ]}
+/>
+```
+
+Background changes are triggered via custom events as user scrolls:
+
+```typescript
+ScrollTrigger.create({
+  trigger: section,
+  start: "top center",
+  end: "bottom center",
+  onEnter: () => window.dispatchEvent(
+    new CustomEvent("bg-change", { detail: { index } })
+  ),
+  onEnterBack: () => window.dispatchEvent(
+    new CustomEvent("bg-change", { detail: { index } })
+  ),
+});
+```
+
+## Mobile Behavior
+
+- Bubble effects disabled below 769px
+- Grid layouts switch to single column
+- Reduced padding and simplified animations
+- Video backgrounds hidden on mobile
+
+```css
+@media (max-width: 768px) {
+  .long-section {
+    min-height: auto;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+    gap: 3rem;
+  }
+}
+```
+
+## Key Components Used
+
+- `BaseLayout` - Page wrapper with SEO meta tags
+- `Navigation` - Top navigation bar
+- `Footer` - Site footer
+- `GlobalBackground` - Video/image background manager
+- `EmptySection` - Spacing section between content blocks
+
+## Related Files
+
+- Layout: `src/layouts/BaseLayout.astro`
+- Components: `src/components/Navigation.astro`, `src/components/Footer.astro`
+- Utilities: `src/utils/textSwipeAnimation.ts`
+- i18n: `src/i18n/utils.ts`

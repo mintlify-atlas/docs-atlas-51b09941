@@ -1,0 +1,641 @@
+---
+title: 'CSS Variables'
+description: 'Complete reference of CSS custom properties used in Adosa Real Estate theme'
+---
+
+## Overview
+
+Adosa Real Estate uses CSS custom properties (variables) for consistent theming, spacing, typography, and animations throughout the website. All variables are defined in `src/styles/theme.css` and `src/styles/global.css`.
+
+## Color System
+
+### Primary Colors
+
+The Adosa premium color palette:
+
+```css
+:root {
+  --color-1: #F2F1EB; /* Background (Beige Claro) */
+  --color-2: #AEADA5; /* Secondary (Gris Medio) */
+  --color-3: #D7AE56; /* Accent (Dorado/Ocre) */
+  --color-4: #53534B; /* Text (Gris Oscuro Ocre) */
+}
+```
+
+<Card title="Color Usage Guide">
+  - **color-1**: Main backgrounds, light sections
+  - **color-2**: Secondary text, subtle borders
+  - **color-3**: Accent elements, CTAs, highlights
+  - **color-4**: Primary text, headings, dark text
+</Card>
+
+#### Color 1: Background
+
+**Variable:** `--color-1`  
+**Value:** `#F2F1EB`  
+**Description:** Beige Claro (Light Beige)
+
+**Usage:**
+```css
+body {
+  background-color: var(--color-1);
+}
+
+.section {
+  background: var(--color-1);
+}
+```
+
+**Applied to:**
+- Page backgrounds
+- Card backgrounds
+- Light sections
+- Default background color
+
+#### Color 2: Secondary
+
+**Variable:** `--color-2`  
+**Value:** `#AEADA5`  
+**Description:** Gris Medio (Medium Gray)
+
+**Usage:**
+```css
+.text-secondary {
+  color: var(--color-2);
+}
+
+.border {
+  border-color: var(--color-2);
+}
+```
+
+**Applied to:**
+- Secondary text
+- Placeholders
+- Subtle borders
+- Disabled states
+
+#### Color 3: Accent
+
+**Variable:** `--color-3`  
+**Value:** `#D7AE56`  
+**Description:** Dorado/Ocre (Gold/Ochre)
+
+**Usage:**
+```css
+.btn-primary {
+  background-color: var(--color-3);
+}
+
+a {
+  color: var(--color-3);
+}
+```
+
+**Applied to:**
+- Primary buttons
+- Links
+- Accent highlights
+- Active states
+- Icons
+
+#### Color 4: Primary Text
+
+**Variable:** `--color-4`  
+**Value:** `#53534B`  
+**Description:** Gris Oscuro Ocre (Dark Gray Ochre)
+
+**Usage:**
+```css
+body {
+  color: var(--color-4);
+}
+
+h1, h2, h3 {
+  color: var(--color-4);
+}
+```
+
+**Applied to:**
+- Body text
+- Headings
+- Primary content
+- Dark text elements
+
+### Special Colors
+
+```css
+:root {
+  --color-overlay: #1a1a1a;
+  --color-text-inverse: #ffffff;
+}
+```
+
+#### Overlay Color
+
+**Variable:** `--color-overlay`  
+**Value:** `#1a1a1a`
+
+**Usage:**
+```css
+.modal-backdrop {
+  background: var(--color-overlay);
+  opacity: 0.8;
+}
+```
+
+#### Inverse Text
+
+**Variable:** `--color-text-inverse`  
+**Value:** `#ffffff`
+
+**Usage:**
+```css
+.btn-primary {
+  color: var(--color-text-inverse);
+}
+```
+
+### Dark Theme
+
+Dark theme overrides for specific sections:
+
+```css
+[data-theme="dark"] {
+  --color-1: #1a1a1a;
+  --color-4: #F2F1EB;
+}
+```
+
+**Usage:**
+```html
+<section data-theme="dark">
+  <h2>Dark Section Title</h2>
+  <p>Content with inverted colors</p>
+</section>
+```
+
+## Typography
+
+### Font Families
+
+```css
+:root {
+  --font-heading: 'Onest', sans-serif;
+  --font-body: 'Onest', sans-serif;
+  --font-main: var(--font-body); /* Legacy alias */
+}
+```
+
+#### Heading Font
+
+**Variable:** `--font-heading`  
+**Value:** `'Onest', sans-serif`
+
+**Usage:**
+```css
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+```
+
+#### Body Font
+
+**Variable:** `--font-body`  
+**Value:** `'Onest', sans-serif`
+
+**Usage:**
+```css
+body {
+  font-family: var(--font-body);
+}
+```
+
+<Note>
+  Adosa uses Onest for both headings and body text, providing a unified, modern aesthetic.
+</Note>
+
+### Font Sizes (Desktop)
+
+```css
+:root {
+  --font-size-h1: 4.5rem;   /* 72px */
+  --font-size-h2: 3.5rem;   /* 56px */
+  --font-size-h3: 2rem;     /* 32px */
+  --font-size-p: 1.1rem;    /* 17.6px */
+  --font-size-nav: 0.9rem;  /* 14.4px */
+}
+```
+
+#### Heading Sizes
+
+**H1 - Hero Titles**
+
+**Variable:** `--font-size-h1`  
+**Desktop:** `4.5rem` (72px)  
+**Mobile:** `2.8rem` (44.8px)
+
+```css
+h1 {
+  font-size: clamp(2.5rem, 5vw, var(--font-size-h1));
+}
+```
+
+**H2 - Section Titles**
+
+**Variable:** `--font-size-h2`  
+**Desktop:** `3.5rem` (56px)  
+**Mobile:** `2.2rem` (35.2px)
+
+```css
+h2 {
+  font-size: clamp(2rem, 4vw, var(--font-size-h2));
+}
+```
+
+**H3 - Subsection Titles**
+
+**Variable:** `--font-size-h3`  
+**Desktop:** `2rem` (32px)  
+**Mobile:** `1.5rem` (24px)
+
+```css
+h3 {
+  font-size: clamp(1.5rem, 3vw, var(--font-size-h3));
+}
+```
+
+#### Body Sizes
+
+**Paragraph Text**
+
+**Variable:** `--font-size-p`  
+**Value:** `1.1rem` (17.6px)
+
+```css
+p {
+  font-size: var(--font-size-p);
+}
+```
+
+**Navigation Text**
+
+**Variable:** `--font-size-nav`  
+**Value:** `0.9rem` (14.4px)
+
+```css
+nav a {
+  font-size: var(--font-size-nav);
+}
+```
+
+### Mobile Font Sizes
+
+Automatically applied on screens ≤768px:
+
+```css
+@media (max-width: 768px) {
+  :root {
+    --font-size-h1: 2.8rem;
+    --font-size-h2: 2.2rem;
+    --font-size-h3: 1.5rem;
+  }
+}
+```
+
+## Spacing & Layout
+
+### Container Spacing
+
+```css
+:root {
+  --spacing-container: 4rem; /* Desktop: 64px */
+}
+
+@media (max-width: 768px) {
+  :root {
+    --spacing-container: 1.5rem; /* Mobile: 24px */
+  }
+}
+```
+
+**Variable:** `--spacing-container`  
+**Desktop:** `4rem` (64px)  
+**Mobile:** `1.5rem` (24px)
+
+**Usage:**
+```css
+.container {
+  padding: 0 var(--spacing-container);
+}
+
+section {
+  margin: 0 var(--spacing-container);
+}
+```
+
+### Navigation Height
+
+```css
+:root {
+  --height-nav: 90px; /* Desktop */
+}
+
+@media (max-width: 768px) {
+  :root {
+    --height-nav: 70px; /* Mobile */
+  }
+}
+```
+
+**Variable:** `--height-nav`  
+**Desktop:** `90px`  
+**Mobile:** `70px`
+
+**Usage:**
+```css
+nav {
+  height: var(--height-nav);
+}
+
+main {
+  padding-top: var(--height-nav);
+}
+```
+
+### Additional Layout Variables
+
+Defined in `global.css`:
+
+```css
+:root {
+  --border-radius: 4px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+```
+
+**Border Radius**
+
+**Variable:** `--border-radius`  
+**Value:** `4px`
+
+```css
+.card {
+  border-radius: var(--border-radius);
+}
+```
+
+**Box Shadow**
+
+**Variable:** `--box-shadow`  
+**Value:** `0 4px 20px rgba(0, 0, 0, 0.08)`
+
+```css
+.card {
+  box-shadow: var(--box-shadow);
+}
+```
+
+## Animations
+
+### Easing Functions
+
+```css
+:root {
+  --ease-premium: cubic-bezier(0.25, 1, 0.5, 1);
+}
+```
+
+**Variable:** `--ease-premium`  
+**Value:** `cubic-bezier(0.25, 1, 0.5, 1)`  
+**Description:** Premium smooth easing for luxury feel
+
+**Usage:**
+```css
+.element {
+  transition: transform 0.8s var(--ease-premium);
+}
+```
+
+**Characteristics:**
+- Smooth acceleration and deceleration
+- Premium, polished feel
+- Perfect for luxury brand animations
+- Works well with GSAP animations
+
+### Duration Variables
+
+```css
+:root {
+  --duration-slow: 1.2s;
+  --duration-medium: 0.8s;
+}
+```
+
+**Slow Duration**
+
+**Variable:** `--duration-slow`  
+**Value:** `1.2s`
+
+```css
+.fade-in {
+  transition: opacity var(--duration-slow) var(--ease-premium);
+}
+```
+
+**Medium Duration**
+
+**Variable:** `--duration-medium`  
+**Value:** `0.8s`
+
+```css
+.hover-effect {
+  transition: transform var(--duration-medium) var(--ease-premium);
+}
+```
+
+## Usage Examples
+
+### Creating a Custom Component
+
+```astro
+---
+// PropertyCard.astro
+---
+
+<div class="property-card">
+  <h3>Luxury Villa</h3>
+  <p>Beautiful property with ocean views</p>
+  <button class="btn-primary">View Details</button>
+</div>
+
+<style>
+  .property-card {
+    background: var(--color-1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: var(--spacing-container);
+    transition: transform var(--duration-medium) var(--ease-premium);
+  }
+
+  .property-card:hover {
+    transform: translateY(-8px);
+  }
+
+  h3 {
+    font-family: var(--font-heading);
+    font-size: var(--font-size-h3);
+    color: var(--color-4);
+  }
+
+  p {
+    font-family: var(--font-body);
+    font-size: var(--font-size-p);
+    color: var(--color-2);
+  }
+
+  .btn-primary {
+    background-color: var(--color-3);
+    color: var(--color-text-inverse);
+    transition: all var(--duration-medium) var(--ease-premium);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(215, 174, 86, 0.3);
+  }
+</style>
+```
+
+### Dark Section Example
+
+```astro
+<section class="dark-section" data-theme="dark">
+  <div class="container">
+    <h2>Featured Properties</h2>
+    <p>Discover our exclusive listings</p>
+  </div>
+</section>
+
+<style>
+  .dark-section {
+    background: var(--color-overlay);
+    padding: var(--spacing-container);
+  }
+
+  .dark-section h2 {
+    color: var(--color-4); /* Automatically light in dark theme */
+  }
+</style>
+```
+
+### Responsive Typography
+
+```css
+.hero-title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h1);
+  color: var(--color-4);
+}
+
+/* Automatically adjusts on mobile via media query in theme.css */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: var(--font-size-h1); /* Now 2.8rem on mobile */
+  }
+}
+```
+
+### Custom Animation
+
+```css
+.fade-slide {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: 
+    opacity var(--duration-slow) var(--ease-premium),
+    transform var(--duration-slow) var(--ease-premium);
+}
+
+.fade-slide.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+```
+
+## Variable Reference Table
+
+### Colors
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `--color-1` | `#F2F1EB` | Background (Light Beige) |
+| `--color-2` | `#AEADA5` | Secondary (Medium Gray) |
+| `--color-3` | `#D7AE56` | Accent (Gold/Ochre) |
+| `--color-4` | `#53534B` | Text (Dark Gray) |
+| `--color-overlay` | `#1a1a1a` | Overlay backgrounds |
+| `--color-text-inverse` | `#ffffff` | Inverse text (white) |
+
+### Typography
+
+| Variable | Desktop | Mobile | Description |
+|----------|---------|--------|-------------|
+| `--font-heading` | `'Onest', sans-serif` | - | Heading font family |
+| `--font-body` | `'Onest', sans-serif` | - | Body font family |
+| `--font-size-h1` | `4.5rem` | `2.8rem` | H1 heading size |
+| `--font-size-h2` | `3.5rem` | `2.2rem` | H2 heading size |
+| `--font-size-h3` | `2rem` | `1.5rem` | H3 heading size |
+| `--font-size-p` | `1.1rem` | - | Paragraph size |
+| `--font-size-nav` | `0.9rem` | - | Navigation size |
+
+### Spacing
+
+| Variable | Desktop | Mobile | Description |
+|----------|---------|--------|-------------|
+| `--spacing-container` | `4rem` | `1.5rem` | Container padding |
+| `--height-nav` | `90px` | `70px` | Navigation height |
+
+### Effects
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `--border-radius` | `4px` | Standard border radius |
+| `--box-shadow` | `0 4px 20px rgba(0,0,0,0.08)` | Card shadow |
+| `--ease-premium` | `cubic-bezier(0.25,1,0.5,1)` | Premium easing |
+| `--duration-slow` | `1.2s` | Slow animation |
+| `--duration-medium` | `0.8s` | Medium animation |
+
+## Best Practices
+
+1. **Always use variables**: Never hardcode colors or sizes
+2. **Respect the color system**: Use colors according to their intended purpose
+3. **Maintain consistency**: Use spacing variables for margins and padding
+4. **Test responsive behavior**: Variables change on mobile - test both sizes
+5. **Use premium easing**: Apply `--ease-premium` for smooth, luxury animations
+
+## Related Documentation
+
+- [Astro Configuration](/reference/astro-config) - Build settings
+- [Theme Customization](/styling/theme) - How to customize the theme
+- [Animation Guide](/guides/animations) - GSAP animation examples
+
+## Modifying Variables
+
+To customize variables, edit `src/styles/theme.css`:
+
+```css theme.css
+:root {
+  /* Change accent color */
+  --color-3: #C19A6B; /* Different gold */
+  
+  /* Adjust spacing */
+  --spacing-container: 5rem;
+  
+  /* Modify animation speed */
+  --duration-medium: 0.6s;
+}
+```
+
+<Warning>
+  Changes to CSS variables affect the entire site. Test thoroughly before deploying.
+</Warning>

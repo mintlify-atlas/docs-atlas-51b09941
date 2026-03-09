@@ -1,0 +1,214 @@
+---
+title: 'GitHub Actions Workflow'
+description: 'Automated deployment pipeline using GitHub Actions for continuous delivery'
+---
+
+The Adosa Real Estate website uses GitHub Actions to automatically build and deploy the site, ensuring properties are always up-to-date.
+
+## Workflow Overview
+
+The deployment workflow is defined in `.github/workflows/deploy.yml:1` and runs automatically to keep the website synchronized with the eGO Real Estate API.
+
+## Deployment Triggers
+
+The workflow runs on three triggers:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 */12 * * *"  # Every 12 hours
+  workflow_dispatch:  # Manual trigger
+```
+
+### Trigger Explanation
+
+1. **Push to main** - Deploys immediately when code is pushed to the main branch
+2. **Scheduled** - Runs every 12 hours to fetch updated property listings (reduced from hourly to avoid eGO API rate limiting)
+3. **Manual dispatch** - Can be triggered manually from GitHub Actions UI
+
+<Note>
+The schedule was reduced from every hour to every 12 hours to prevent HTTP 429 (rate limit) errors from the eGO API.
+</Note>
+
+## Workflow Steps
+
+The workflow consists of six automated steps:
+
+### 1. Checkout Code
+
+```yaml
+- name: 🚚 Checkout code
+  uses: actions/checkout@v4
+```
+
+Clones the repository to the GitHub Actions runner.
+
+### 2. Install Node.js
+
+```yaml
+- name: 🟢 Install Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: 20
+    cache: "npm"
+```
+
+Sets up Node.js 20 with npm caching for faster builds.
+
+### 3. Install Dependencies
+
+```yaml
+- name: 📦 Install dependencies
+  run: npm ci
+```
+
+Uses `npm ci` (clean install) for reproducible builds based on `package-lock.json`.
+
+### 4. Build Project
+
+```yaml
+- name: 🏗️ Build project
+  run: npm run build
+  env:
+    PUBLIC_EGO_API_TOKEN: ${{ secrets.PUBLIC_EGO_API_TOKEN }}
+    EGO_API_BASE_URL: "https://websiteapi.egorealestate.com"
+```
+
+Executes the Astro build process with the eGO API token injected as an environment variable.
+
+### 5. Validate Build
+
+```yaml
+- name: ✅ Validate build (check properties exist)
+  run: |
+    if grep -q "property-card" dist/propiedades/index.html 2>/dev/null || grep -q "property-card" dist/es/propiedades/index.html 2>/dev/null; then
+      echo "✅ Build válido: propiedades encontradas en el HTML"
+    else
+      echo "⛔ Build inválido: NO se encontraron propiedades en el HTML generado"
+      echo "Abortando deploy para proteger el contenido actual del servidor"
+      exit 1
+    fi
+```
+
+Critical validation step that:
+- Checks if property cards exist in the generated HTML
+- Aborts deployment if properties are missing
+- Protects against deploying broken builds to production
+
+<Warning>
+If this validation fails, the workflow exits with code 1 and deployment is cancelled. This prevents overwriting working content with an empty or broken build.
+</Warning>
+
+### 6. Deploy via SFTP
+
+```yaml
+- name: 🚀 Deploy to cdmon via SFTP
+  uses: appleboy/scp-action@v0.1.7
+  with:
+    host: ${{ secrets.SFTP_HOST }}
+    username: ${{ secrets.SFTP_USER }}
+    password: ${{ secrets.SFTP_PWD }}
+    port: 22
+    source: "dist/*"
+    target: "/web"
+    strip_components: 1
+    overwrite: true
+```
+
+Uploads the `dist/` folder to cdmon hosting via SFTP, overwriting existing files.
+
+## Required GitHub Secrets
+
+Four secrets must be configured in the GitHub repository settings:
+
+| Secret | Purpose | Example |
+|--------|---------|----------|
+| `SFTP_HOST` | cdmon server hostname | `ftp.example.com` |
+| `SFTP_USER` | SFTP username | `adosa_user` |
+| `SFTP_PWD` | SFTP password | `secure_password` |
+| `PUBLIC_EGO_API_TOKEN` | eGO Real Estate API token | `u2fW9rOg0Oz5rPGV...` |
+
+### Adding Secrets
+
+1. Go to GitHub repository **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Add each secret with its name and value
+4. Secrets are encrypted and not visible after creation
+
+## Continuous Deployment Strategy
+
+The workflow implements a **continuous deployment** strategy:
+
+- **Automatic updates** - Properties are refreshed every 12 hours without manual intervention
+- **Instant deploys** - Code changes on `main` branch deploy immediately
+- **Build validation** - Prevents broken deployments with automated checks
+- **Zero-downtime** - Files are overwritten atomically via SFTP
+
+### Benefits
+
+1. **Fresh content** - Properties are never more than 12 hours out of date
+2. **No manual work** - Developers don't need to manually deploy
+3. **Safety checks** - Validation prevents deploying incomplete builds
+4. **Audit trail** - All deployments are logged in GitHub Actions
+
+## Monitoring Deployments
+
+View deployment status:
+
+1. Go to the repository's **Actions** tab
+2. Select the "Deploy to cdmon (SFTP)" workflow
+3. View run history, logs, and success/failure status
+
+### Typical Deployment Time
+
+- Total workflow duration: **2-3 minutes**
+- Build step: 30-60 seconds
+- SFTP upload: 60-90 seconds (depending on file count)
+
+## Manual Deployment
+
+To trigger a deployment manually:
+
+1. Go to **Actions** → **Deploy to cdmon (SFTP)**
+2. Click **Run workflow**
+3. Select the `main` branch
+4. Click **Run workflow**
+
+This is useful for:
+- Forcing an immediate property update
+- Testing deployment after configuration changes
+- Recovering from a failed scheduled run
+
+## Troubleshooting
+
+### Deployment Failing on Validation
+
+**Error**: "Build inválido: NO se encontraron propiedades"
+
+**Cause**: eGO API returned no properties or API request failed
+
+**Solution**: 
+1. Check eGO API status
+2. Verify `PUBLIC_EGO_API_TOKEN` secret is valid
+3. Review build logs for API errors
+
+### SFTP Connection Errors
+
+**Error**: "Failed to connect to SFTP"
+
+**Cause**: Invalid credentials or cdmon server issues
+
+**Solution**:
+1. Verify `SFTP_HOST`, `SFTP_USER`, and `SFTP_PWD` secrets
+2. Test SFTP connection manually using credentials
+3. Check if cdmon hosting is operational
+
+### Scheduled Runs Not Triggering
+
+**Issue**: Workflow doesn't run at scheduled times
+
+**Cause**: GitHub Actions may delay scheduled workflows during high load
+
+**Solution**: Use manual dispatch if immediate update is needed. Scheduled jobs typically run within 15 minutes of scheduled time.
